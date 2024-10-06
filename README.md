@@ -2,7 +2,7 @@
 ## Available Times
 Monday 13:00 - 14:00
 
-Tuesday 10:00 - 14:00
+Tuesday 10:00 - 13:00
 
 Thursday 13:00 - 14:00
 
