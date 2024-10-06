@@ -1,5 +1,9 @@
 1.) Goto https://www.slamtec.com/en/Support#rplidar-a-series
+
+
 2.)Install Driver for the USB AdapterThe USB adapter converts UART to USB by using CP2102 chip. You need to installthe device driver for the chip. The driver can be found in the provided SDKpackage or downloaded from Silicon Labs' official website:http://www.silabs.com/products/mcu/Pages/USBtoUARTBridgeVCPDrivers.aspxHere's the installation steps in Windows: after connecting the RPLIDAR with PC,please find the driver file "CP210x VCP Windows" and choose correct operatingsystem version accordingly: x86 for 32-bit OS and x64 for 64-bitOS
+
+
 3.) You can now run tge Robo Studio Demo (https://www.manualslib.com/manual/1760808/Slamtec-Rplidar-A2-Series.html?page=7#manual) Follow the steps on here. 
 
 4.) Other codes can be found here https://github.com/slamtec/rplidar_sdk#
