@@ -1,12 +1,13 @@
 # MEng Sensor Fusion Project
 ## Available Times
-Monday 13:00 - 14:00
 
 Tuesday 10:00 - 13:00
 
 Thursday 13:00 - 14:00
 
 Friday 11:00 - 
+
+Our meeting: 11:30 Tuesday at HM (please book room ahead SOMEONE)
 
 ## Sensor Models
 RADAR (AWR1642)
