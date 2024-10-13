@@ -1,0 +1,91 @@
+IR:
+An Infrared (IR) camera is sensitive to thermal radiation, allowing it 
+to create a thermal image, that tell us the temperature of objects in the scene. 
+Practically, IR cameras have greatly reduced resolution compared to RGB cameras 
+perhaps in the range of 100x100 rather than in the thousands. Despite this they have 
+advantages, such as being able to work in low-light conditions, through glare, shadows, fog 
+and are able to distinguish objects differently (via temperature rather than colour). This is 
+especially important as identifying people, cars and animals (which are all objects of 
+importance in the context of safe driving) becomes greatly easier.
+
+By incorporating an IR camera into our AV sensor array, identification of people, cars 
+and animals will be more accurate, reliable and possible at higher ranges. Combining the 
+strengths of an RGB camera, the relatively low resolution and frame rate are remedied, and 
+object classification can be cross compared improving reliability and therefore safety.
+
+Some work incorporating IR sensors in driving has been done such as by FLIR [1], a thermal 
+sensor manafacturer. They provide additionally provide a dataset of fully annotated thermal 
+images which may be used to train a convolutional neural network (CNN) to identify objects 
+and classify them.
+
+[1] https://www.flir.co.uk/oem/adas/adas-dataset-form/
+
+NB: More references, maybe too descriptive? Not really much to find, can add some kind of irrelevant ones
+
+
+Sensor Fusion:
+The core of the project is to effectively combine the strengths of the four sensors, Stereo 
+Camera, LiDAR, RADAR and IR Camera into one cohesive system via sensor fusion. The literature 
+covers various combinations of these sensors, predominantly the pair of stereo camera and LiDAR, 
+and the pair of stereo camera and RADAR.
+
+LiDAR-Camera fusion is motivated by the powerful imaging of the camera being combined with the more accurate 
+range measurements of the LiDAR. It is typically tackled via a deep learning approach [1,2] such as the use of 
+CNNs. These approaches train a machine learning model for road detection, usually using data from 
+open datasets such as KITTI [3] or Waymo [4]. With some intrinsic and extrinsic calibration, 
+we can then attempt to align the images captured by RGB cameras and the LiDAR point clouds.
+
+The results from this fusion can be used to tackle different tasks such as accurate classification of objects 
+especially vehicles, semantic segmentation, an ablation study on the robustness of the sensor fusion [5] 
+or to simply improve depth estimation or build 3D mappings of objects [6]. Due to the highly informative 
+nature of both of these sensors, LiDAR-Camera fusion [7] is the most common sensor fusion approach and 
+is continually improving in perfomance and efficiency.
+
+RADAR-Camera [8,9] fusion takes advantage of the accuracy and robustness of the RADAR combining it with the 
+camera image to provide precise depth estimations at points in the camera image. Using a multiple input 
+multiple output (MIMO) radar, and the time of flight (ToF) principle the RADAR data can be processed and 
+converted to a point cloud that can be represented on a 2D image plane. Similarly to LiDAR-Camera fusion 
+the more sparse depth estimations of the LiDAR/RADAR are combined with the image to complete tasks like 
+object detection, classification and semantic segmentation. Data is commonly sourced from nuScenes [10] as 
+the data is captured with a full sensor suite, including 5x RADARs.
+
+Even less common, is literature regarding the combination of all three LiDAR, RADAR and Camera sensors. 
+Through benchmarks such as the nuScenes leaderboard and the like, this sensor fusion has shown some SOTA 
+perfomance. One newer approach uses a Bayesian Neural Network (BNN) [11] as an extension to use of a Deep 
+Neural Network (DNN) in multiple object detection (MOD). The motivation behind this is to measure uncertainty 
+and has also improved the precision of MOD compared to its predecessor. Another paper [12] finds that in 
+fusing multiple sensors together, the order / structure of fusion is of importance. They conclude that most 
+effective way to combine the sensors is to first project the LiDAR onto the camera image, then consequently 
+fuse the LiDAR points with the RADAR points to improve accuracy achieving SOTA performance.
+
+The IR camera has been fused with RGB camera [13], LiDAR [14] and RADAR [15] in the past. For obvious reasons, 
+the conclusions of the studies of IR with LiDAR and RADAR are almost identical to that of RGB with those 
+same sensors, albeit with different justifications and use cases. It is more important to focus on the benefits 
+of the IR camera versus the RGB camera which is covered above in the discussion of IR, in our case, the 
+identification of people being the most key. There is literature regarding the fusion of RGB and thermal images 
+[16] but this is not currently an area of interest for this project as the combined image cannot be properly 
+utilised due to lack of appropriate training data.
+
+[1] https://www.sciencedirect.com/science/article/abs/pii/S0921889018300496
+[2] https://arxiv.org/abs/2203.08195
+[3] https://www.cvlibs.net/datasets/kitti/
+[4] https://waymo.com/open/
+[5] https://arxiv.org/abs/2205.14951
+[6] https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8760386
+[7] https://www.sciencedirect.com/science/article/pii/S1877050921005767
+
+[8] https://ieeexplore.ieee.org/abstract/document/10225711
+[9] https://arxiv.org/abs/2103.07825
+[10] https://www.nuscenes.org/
+
+[11] https://ieeexplore.ieee.org/abstract/document/9721916
+[12] https://ieeexplore.ieee.org/abstract/document/9839508
+
+[13] https://www.spiedigitallibrary.org/conference-proceedings-of-spie/6541/654105/Benefits-of-IRvisible-fusion/10.1117/12.720529.short
+[14] https://www.sciencedirect.com/science/article/pii/S2405959521001818
+[15] https://ieeexplore.ieee.org/abstract/document/1336475
+[16] https://ieeexplore.ieee.org/abstract/document/8917332
+
+NB: Maybe lacks some concrete direction, I feel like we are kinda doing all the tasks? 
+Also unsure of other sections clarifying project direction
+Could add some short notes about additional sensor types?

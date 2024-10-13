@@ -16,6 +16,8 @@ LiDAR (RPLIDAR A2)
 
 Camera (Intel RealSense D435)
 
+IR (FLIR One Pro, change tbd)
+
 ## Assessment Deadlines
 | Coursework Type             | Due Date       | Weight          | 
 |:----------------------------|:---------------|:----------------|
