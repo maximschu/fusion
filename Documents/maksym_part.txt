@@ -1,0 +1,20 @@
+LiDAR:
+
+
+Light detection and ranging (LiDAR) has widely been used in autonomous driving experiments [x]. LiDAR is able to perceive an environment as an accurate point cloud accurately being able to calculate the distance, but is very limited in object classification ability. In robotics projects, LiDAR has been used to solve Simultaneous Localization and Mapping (SLAM) problems [y] as well as object detection and classification using machine learning [z]. In [y] a 2D LiDAR sensor was used, to detect objects, a cluster based algorithm was used. Due to the nature of the LiDAR sensor data is received sequentially through the angle at which the sensor is pointing and the distance to the nearest object. In [y] clusters of points were setup to detect when a large discrepancy between sequential data points was detected, implying an object was closer than the background. In order to avoid bad data this cluster procedure was conducted in a continuous loop monitoring the frames of the LiDAR output, if the same object was detected in three sequential frames it was classified as an object. In this project a similar approach can be used to analyse the LiDAR data and detect and verify the objects distance. 
+
+X - [J. Van Brummelen, M. O’Brien, D. Gruyer, and H. Najjaran, “Autonomous vehicle perception: The technology of today and tomorrow,” Transportation Research Part C Emerging Technologies, vol. 89, pp. 384–406, Mar. 2018, doi: 10.1016/j.trc.2018.02.012.]. 
+
+y – [M. Mihálik et al., “A method for detecting dynamic objects using 2D LiDAR based on scan matching,” Applied Sciences, vol. 12, no. 11, p. 5641, Jun. 2022, doi: 10.3390/app12115641.
+.]
+
+z – [Y. Wu, Y. Wang, S. Zhang, and H. Ogai, “Deep 3D object Detection Networks Using LiDAR data: A review,” IEEE Sensors Journal, vol. 21, no. 2, pp. 1152–1171, Aug. 2020, doi: 10.1109/jsen.2020.3020626.
+]
+
+
+Failiures risk and mitigation:
+
+Physical damage to the sensors while prototyping could cause substantial delay to the project due to the necessity of all the sensors for the fusion algorithm. To ensure this would not happen it will be necessary to ensure the sensors are mounted securely to any prototype built and are not damaged in transportation. This could happen throughout the duration of the project and could impact the project by up to 3 weeks to replace a sensor.
+	Throughout the project any of the team members could fall sick being unable to complete their project work on time. A sickness is an unpredictable event and could happen at any stage in the project. To mitigate this the group will have a shared Github space where every team member will have access and logs of work completed and can pick up another team members part if necessary. 
+	Moreover, a potential source of error in the fusion algorithm could be data synchronisation. If the data that is captured from each perspective sensor is out of sync in a time domain then it could be detrimental to the fusion process and the testing of the algorithm. To mitigate against this it is necessary to consider running all the sensors from one laptop and hence capture data locally when all the sensors are synchronised. Alternatively, a synchronised server and algorithm that causes all sensors to start recording at once could be used.
+	Furthermore, a lack of physical power supply when real world testing could cause incomplete or corrupted data. The radar particularly is powered from a main supply, hence if a main supply is unavailable this could mean the sensor is unable to contribute to the fusion process. To mitigate this it is necessary to look into safe portable outdoor mains power supplies and decide how the sensors will be powered outdoors.
