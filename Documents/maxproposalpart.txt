@@ -10,6 +10,7 @@ platform connected to a single board computer (SBC) in our experimentation, to e
 world driving. Moreover, a few additional sensors are proposed including ultrasonics, GPS (for 
 simultaneous localization and mapping aka SLAM) and other camera types such as polarisation or event.
 
+NB: doesnt really talk about method, not much room, not sure what to do
 
 IR:
 An Infrared (IR) camera is sensitive to thermal radiation, allowing it 
