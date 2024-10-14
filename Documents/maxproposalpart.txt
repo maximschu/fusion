@@ -3,12 +3,12 @@ The continuous emergence of automated vehicles (AVs) makes crucial the developme
 robust sensing systems, which are capable of working accurately through all types of weather conditions 
 and faults. Improving the accuracy and robustness of AV perception is a key component in 
 bringing AVs to prevalence, as safety is the most important challenge in automated driving. 
-This project proposes the combination of four low cost sensors: a stereo RGB camera, LiDAR, RADAR 
+This project proposes the combination of four low-cost sensors: a stereo RGB camera, LiDAR, RADAR 
 and IR camera, via sensor fusion to achieve road detection with precise measurements, sufficient redundancy 
 aswell as reliable people, vehicle and animal detection. We also aim to house the sensor array on a moving 
 platform connected to a single board computer (SBC) in our experimentation, to emulate real 
 world driving. Moreover, a few additional sensors are proposed including ultrasonics, GPS (for 
-simultaneous localization and mapping aka SLAM) and other camera types such as polarization or event.
+simultaneous localization and mapping aka SLAM) and other camera types such as polarisation or event.
 
 
 IR:
