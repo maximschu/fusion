@@ -21,5 +21,5 @@
 | ------------- |:-------------:| -----:|
 |yolo_depth.py | Uses YOLOv11n (trained off MS-COCO dataset containing 80 pre-trained classes) to detect object(s) and draws a bounding box around the identified objects. Depth of the object is determined by the centerpoint of the box. | [Link](https://github.com/maximschu/fusion/blob/main/Camera/yolo_depth.py)
 
-# EXTRAS
+# Additional Resources
 https://github.com/IntelRealSense/librealsense/tree/master/examples#sample-code-for-intel-realsense-cameras
