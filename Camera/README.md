@@ -16,10 +16,10 @@
 ### Depth (3D VIEW)
 <img width="1128" alt="Screenshot 2024-10-06 143330" src="https://github.com/user-attachments/assets/cf76a35e-6324-484d-a95f-a7097e42c463">
 
-# Explaination for Codes
+# Explanation for Codes
 | Filename        | Desciption           | Link |
 | ------------- |:-------------:| -----:|
 |yolo_depth.py | Uses YOLOv11n (trained off MS-COCO dataset containing 80 pre-trained classes) to detect object(s) and draws a bounding box around the identified objects. Depth of the object is determined by the centerpoint of the box. | [Link](https://github.com/maximschu/fusion/blob/main/Camera/yolo_depth.py)
 
-**EXTRAS**<br />
+# EXTRAS
 https://github.com/IntelRealSense/librealsense/tree/master/examples#sample-code-for-intel-realsense-cameras
