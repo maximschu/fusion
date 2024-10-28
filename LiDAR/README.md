@@ -36,3 +36,26 @@ theta: 333.41 Dist: 00000.00
  ![image](https://github.com/user-attachments/assets/4e7d72c5-d23b-4da7-8e91-74708e19280f)
 ![image](https://github.com/user-attachments/assets/ecfc34c5-d140-4cc0-9dee-d43addcaf5e7)
 ![image](https://github.com/user-attachments/assets/1681790f-390f-4b39-b114-ee5d021229e8)
+
+
+
+
+# Google Cartographer groundwork
+https://google-cartographer-ros.readthedocs.io/en/latest/
+https://github.com/cartographer-project/cartographer_ros
+
+download github code
+dump in folder somewhere
+cd to folder in terminal
+run following
+```
+docker build -f Dockerfile.melodic -t mbolot/cartographer-melodic .
+docker run -it mbolot/cartographer-melodic
+```
+go to docker desktop
+find the container (should be running already)
+either use the exec tab or:
+```
+docker attach [INSERT ID HERE, should be output from the docker run command]
+```
+work out rest from first link
