@@ -1,3 +1,4 @@
+**yt guides**
 https://www.mdpi.com/2076-3417/12/11/5641
 https://www.youtube.com/watch?v=letcTCSu-V0&ab_channel=Wouter2599
 https://medium.com/robotics-weekends/2d-mapping-using-google-cartographer-and-rplidar-with-raspberry-pi-a94ce11e44c5
@@ -5,3 +6,8 @@ https://www.youtube.com/watch?v=Qrtz0a7HaQ4&ab_channel=TizianoFiorenzani
 https://www.youtube.com/watch?v=-_mZusYmJ8o&ab_channel=McMasterMarsRover
 https://www.youtube.com/watch?v=h16BGFK_V9Q&ab_channel=G%C3%B6khanAtal%C4%B1
 https://www.youtube.com/watch?v=RFNNsDI2b6c&ab_channel=TheConstruct
+
+
+
+**matlab**
+https://uk.mathworks.com/help/ros/ref/subscriber.html#d126e52599
