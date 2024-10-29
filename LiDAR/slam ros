@@ -1,0 +1,39 @@
+open terminal 
+
+cd lidar_ws
+roslaunch
+leave open
+
+
+
+new terminal
+lsusb
+ls -l /dev |grep ttyUSB
+sudo chmod 666 /dev/ttyUSB0
+source devel/setup.bash
+roslaunch rplidar_ros view_rplidar.launch
+
+
+leave running 
+
+
+
+3rd terminal
+cd lidar_ws
+source devel/setup.bash
+ cd src
+ cd hector_slam
+ cd hector_slam_launch
+ cd launch
+ roslaunch  tutorial.launch
+
+
+
+
+
+
+
+
+
+all tutorials are at:
+https://www.youtube.com/watch?v=h16BGFK_V9Q&ab_channel=G%C3%B6khanAtal%C4%B1
