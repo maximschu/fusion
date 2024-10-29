@@ -1,7 +1,8 @@
 on windows go to terminal(powershell as admin)
 
 usbipd list
-identify lidar
+identify lidar < this is not in terminal...please use common sense here
+
 usbipd bind --busid 2-2
 usbipd attach --wsl --busid 2-2 
 ^^^^^^may be diff bus id
