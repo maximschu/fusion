@@ -9,8 +9,9 @@ usbipd attach --wsl --busid 2-2
 
 open terminal 
 
-cd lidar_ws
-roslaunch
+export ROS_HOSTNAME=localhost
+export ROS_MASTER_URI=http://localhost:11311
+roscore
 leave open
 
 
@@ -20,6 +21,9 @@ lsusb
 ls -l /dev |grep ttyUSB
 sudo chmod 666 /dev/ttyUSB0
 source devel/setup.bash
+
+export ROS_HOSTNAME=localhost
+export ROS_MASTER_URI=http://localhost:11311
 roslaunch rplidar_ros view_rplidar.launch
 
 
@@ -37,6 +41,23 @@ source devel/setup.bash
  roslaunch  tutorial.launch
 
 
+in another window can use 
+rostopic echo /scan
+^ tpo check if it workeds
+
+
+
+
+matlab
+setenv('ROS_MASTER_URI','http://localhost:11311')
+ setenv('ROS_IP','localhost')
+rosinit
+rostopic info scan
+sub = rossubscriber('/scan','DataFormat','struct');
+[msg2,status,statustext] = receive(sub,10)
+
+scans = rosReadLidarScan(msg2)
+plot(scans) OR USE rosPlot(msg2)
 
 
 
