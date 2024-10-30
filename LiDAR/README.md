@@ -67,3 +67,8 @@ work out rest from first link
 read slam ros for instructions. 
 useful.txt has some links that may be useful
 
+# matlab live data
+![image](https://github.com/user-attachments/assets/a02db415-01ee-4ae8-af25-53216e23aa98)
+check second half of slam ros
+still iffy
+
