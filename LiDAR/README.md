@@ -40,7 +40,8 @@ theta: 333.41 Dist: 00000.00
 
 
 
-# Google Cartographer groundwork
+# Google Cartographer groundwork - ignore for now
+
 https://google-cartographer-ros.readthedocs.io/en/latest/
 https://github.com/cartographer-project/cartographer_ros
 
@@ -59,3 +60,10 @@ either use the exec tab or:
 docker attach [INSERT ID HERE, should be output from the docker run command]
 ```
 work out rest from first link
+
+#
+#Hector slam
+![image](https://github.com/user-attachments/assets/ca1f757e-d85d-4271-9c7b-554142d4eb81)
+read slam ros for instructions. 
+
+
