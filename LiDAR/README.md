@@ -61,9 +61,9 @@ docker attach [INSERT ID HERE, should be output from the docker run command]
 ```
 work out rest from first link
 
-#
-#Hector slam
+
+# Hector slam
 ![image](https://github.com/user-attachments/assets/ca1f757e-d85d-4271-9c7b-554142d4eb81)
 read slam ros for instructions. 
-
+useful.txt has some links that may be useful
 
