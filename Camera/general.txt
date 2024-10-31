@@ -16,5 +16,6 @@ source /opt/ros/humble/setup.bash (better for rs?)
 	usbipd detach --busid 1-17
 
 	lsusb
+
 	(possible issues?)
 		- if usbipd not recognised -> https://github.com/dorssel/usbipd-win/releases/tag/v4.3.0
