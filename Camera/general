@@ -1,0 +1,20 @@
+# for ros
+source /opt/ros/jazzy/setup.bash
+source /opt/ros/humble/setup.bash (better for rs?)
+
+# installing ros on Ubuntu
+	https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html
+
+# installing ros realsense
+	https://github.com/IntelRealSense/realsense-ros?tab=readme-ov-file#installation-on-ubuntu
+	https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md
+
+# usb bind
+	usbipd list
+	usbipd bind --busid ?-?
+	usbipd attach --wsl --busid 1-21
+	usbipd detach --busid 1-17
+
+	lsusb
+	(possible issues?)
+		- if usbipd not recognised -> https://github.com/dorssel/usbipd-win/releases/tag/v4.3.0
