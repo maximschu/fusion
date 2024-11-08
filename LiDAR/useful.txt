@@ -11,3 +11,11 @@ https://www.youtube.com/watch?v=RFNNsDI2b6c&ab_channel=TheConstruct
 
 **matlab**
 https://uk.mathworks.com/help/ros/ref/subscriber.html#d126e52599
+https://uk.mathworks.com/help/releases/R2024b/nav/ref/lidarscan.html?overload=lidarScan+false
+https://uk.mathworks.com/help/releases/R2024b/nav/ref/lidarscan.html?overload=lidarScan+false#d126e106130
+https://uk.mathworks.com/help/ros/ref/rosreadlidarscan.html
+
+
+
+to interpret lidar slam
+https://uk.mathworks.com/help/releases/R2024b/nav/ref/occupancymap.html
