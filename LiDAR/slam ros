@@ -121,3 +121,10 @@ for i = 1:maxIterations
 end
 
 
+[scans, poses] = scansAndPoses(slamAlg);
+map = buildMap(scans, poses, mapResolution, maxLidarRange);
+figure;
+show(map);
+title('Constructed Map');
+
+
