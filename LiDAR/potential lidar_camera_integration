@@ -1,0 +1,56 @@
+% Initialize 2D LiDAR SLAM
+maxLidarRange = 8; % LiDAR max range in meters
+mapResolution = 20; % Cells per meter for 2D map
+slamAlg = lidarSLAM(mapResolution, maxLidarRange);
+slamAlg.LoopClosureThreshold = 210;
+slamAlg.LoopClosureSearchRadius = 8;
+maxIterations = 100;
+
+% Initialize point cloud accumulator
+globalPointCloud = pointCloud([]); % Empty point cloud to accumulate data
+
+for i = 1:maxIterations
+    % 1. Get LiDAR scan and add to SLAM for 2D localization
+    scanMsg = receive(sub, 10); % Receive each new scan message
+    ranges = double(scanMsg.Ranges);
+    numAngles = numel(ranges);
+    angles = linspace(double(scanMsg.AngleMin), double(scanMsg.AngleMax), numAngles);
+    scan = lidarScan(ranges, angles);
+    
+    [isAccepted, loopClosureInfo, optimizationInfo] = addScan(slamAlg, scan);
+    
+    % Get current pose from SLAM (2D [x, y, theta] in the global frame)
+    if isAccepted
+        currPose = getLatestPose(slamAlg); % [x, y, theta]
+        
+        % 2. Get synchronized RGB-D frame and convert to 3D points
+        rgbdFrame = getRgbdFrame(subRgbd); % Custom function to retrieve RGB-D frame
+        [depthMap, colorImage] = rgbdFrame.Depth, rgbdFrame.Color; % Extract depth and RGB data
+        cameraIntrinsics = getCameraIntrinsics(); % Camera intrinsics (fx, fy, cx, cy)
+        
+        % Generate 3D point cloud from RGB-D data
+        [X, Y, Z] = depthTo3DPoints(depthMap, cameraIntrinsics); % 3D points in camera frame
+        rgbValues = reshape(colorImage, [], 3); % Flatten RGB values to match 3D points
+
+        % Create a pointCloud object from RGB-D data
+        rgbdPointCloud = pointCloud([X(:), Y(:), Z(:)], 'Color', uint8(rgbValues));
+
+        % 3. Transform RGB-D points to the global frame using LiDAR pose
+        % Create transformation from 2D SLAM pose to 3D (assuming camera is mounted at [0,0,z] relative to LiDAR)
+        T = createTransformFromPose(currPose, cameraToLidarTransform); % Custom function to apply transforms
+        transformedRgbdPoints = pctransform(rgbdPointCloud, T); % Apply transformation to 3D points
+
+        % 4. Accumulate transformed points into the global point cloud
+        globalPointCloud = pcmerge(globalPointCloud, transformedRgbdPoints, 0.02); % Merge with 2cm tolerance
+    end
+
+    % Optional: Visualize intermediate map
+    show(slamAlg);
+    pcshow(globalPointCloud); % Display accumulated 3D point cloud
+    pause(0.01);
+end
+
+% Display the final 3D map
+figure;
+pcshow(globalPointCloud);
+title('Constructed 3D Map using RGB-D and 2D LiDAR SLAM');
