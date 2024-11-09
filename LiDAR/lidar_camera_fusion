@@ -12,3 +12,4 @@ intrinsics = colorStream.get_intrinsics();
 fx = intrinsics.fx;
 fy = intrinsics.fy;
 cx = intrinsics.ppx;
+cy = intrinsics.ppy;
