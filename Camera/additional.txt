@@ -4,5 +4,6 @@ https://youtu.be/I3UjXlA4IsU?si=dSJiNhQ2sgYgpa0m -> open3d some cool things esp 
 https://youtu.be/_6JHjY6MwrU?si=_SF7V0AnNEqZsJQ- -> visual odometry w open3d (code in camera/open3d/example_tester.py)
 
 
-https://github.com/matlab-deep-learning/Pretrained-YOLOv8-Network-For-Object-Detection
+https://github.com/matlab-deep-learning/Pretrained-YOLOv8-Network-For-Object-Detection]
+https://github.com/matlab-deep-learning/Pretrained-Yolov9-Network-For-Object-Detection
 ^^^^matlab yolo potential
