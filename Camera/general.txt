@@ -19,3 +19,23 @@ source /opt/ros/humble/setup.bash (better for rs?)
 
 	(possible issues?)
 		- if usbipd not recognised -> https://github.com/dorssel/usbipd-win/releases/tag/v4.3.0
+
+# for matlab with realsense sdk:
+	- follow the read me section: 
+	https://github.com/IntelRealSense/librealsense/tree/master/wrappers/matlab
+	
+	- use this version, recent version of SDK doesnt have MATLAB wrapper so can download this:
+	https://github.com/IntelRealSense/librealsense/releases/tag/v2.54.1
+	
+	download Intel.RealSense.SDK-WIN10-2.54.1.5216.exe
+	
+	- can add this but shouldnt be needed
+	addpath('C:\Program Files (x86)\Intel RealSense SDK 2.0\matlab');
+	
+	- result from running: (example images in images folder)
+	depth_example() - result is a depth image
+	pointcloud_example() - this gives pointcloud stream (results are...iffy?)
+	depth_view_example() - depth colour steam (sdk viewer)
+	capture_example() - basically same thing as depth_view_example() bcs no imu for D435
+	
+
