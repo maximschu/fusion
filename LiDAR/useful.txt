@@ -17,5 +17,9 @@ https://uk.mathworks.com/help/ros/ref/rosreadlidarscan.html
 
 
 
+
+https://medlartea.github.io/files/mwf.pdf
+
+
 to interpret lidar slam
 https://uk.mathworks.com/help/releases/R2024b/nav/ref/occupancymap.html
