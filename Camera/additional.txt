@@ -2,7 +2,7 @@
 https://github.com/IntelRealSense/librealsense/tree/master/examples#sample-code-for-intel-realsense-cameras -> bunch of different sample codes to try out
 https://youtu.be/I3UjXlA4IsU?si=dSJiNhQ2sgYgpa0m -> open3d some cool things esp scene recreation towards end
 https://youtu.be/_6JHjY6MwrU?si=_SF7V0AnNEqZsJQ- -> visual odometry w open3d (code in camera/open3d/example_tester.py)
-
+https://betterprogramming.pub/point-cloud-computing-from-rgb-d-images-918414d57e80
 
 https://github.com/matlab-deep-learning/Pretrained-YOLOv8-Network-For-Object-Detection]
 https://github.com/matlab-deep-learning/Pretrained-Yolov9-Network-For-Object-Detection
