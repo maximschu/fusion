@@ -1,7 +1,8 @@
-MATLAB code: --------note the paus 2 seconds, can be done much faster
+#Object detection?
+##MATLAB code: --------note the paus 2 seconds, can be done much faster
 
 
-
+**
 maxLidarRange = 8; % Maximum range of your LiDAR sensor in meters
 mapResolution = 20; % Resolution of the map (cells per meter)
 
@@ -78,10 +79,10 @@ colorbar;
 title('Diff');
 pause(2);
 end
+**
 
 
-
-results:
+##results:
 3s->5s
 ![78c331f7-d4ac-47a8-a711-d8d321a3387a](https://github.com/user-attachments/assets/49f2d574-af7b-42da-934f-962056095956)
 5s->7s
