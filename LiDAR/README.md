@@ -43,7 +43,7 @@ theta: 333.41 Dist: 00000.00
 # Object detection?
 Before this please check slam ros for steps on connecting LiDAR to MATLAB (https://github.com/maximschu/fusion/blob/main/LiDAR/slam%20ros)
 
-## MATLAB code: --------note the paus 2 seconds, can be done much faster
+## MATLAB code: --------note the pause is 2 seconds, can be done much faster
 
 
 **
