@@ -8,7 +8,7 @@ For more information see the wiki page here :
 
 
 ## Windows Guide
-1. Plug in the IR Camera via USB
+1. Plug in the IR Camera via USB (USB-C port on Camera)
 2. Download the following application: 
 [Link](https://files.waveshare.com/wiki/Thermal-Camera-HAT/Thermal_USB_Camera_PC_Software.zip)
 
