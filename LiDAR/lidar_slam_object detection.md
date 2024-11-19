@@ -15,17 +15,13 @@ maxIterations = 10; % Adjust based on the number of scans you have
 for i = 1:maxIterations
     scanMsg = receive(sub, 10); % Receive each new scan message
     ranges = double(scanMsg.Ranges); % Get the range data
-
     % Generate angles to match the number of ranges
     numAngles = numel(ranges); % Get the number of range measurements
     angles = linspace(double(scanMsg.AngleMin), double(scanMsg.AngleMax), numAngles);
-
     % Create the lidarScan object
     scan = lidarScan(ranges, angles);
-
     % Add the scan to the SLAM algorithm
     [isAccepted, loopClosureInfo, optimizationInfo] = addScan(slamAlg, scan);
-
     % Optional: Visualize the SLAM process
     figure();
     title("slamalg")
@@ -33,15 +29,11 @@ for i = 1:maxIterations
     pause(0.01); % Pause briefly for visualization
     [rawScans, rawPoses] = scansAndPoses(slamAlg);
     rawPoints = [];
-    
     currentPose = rawPoses(i, :);  % Extract current pose as [x, y, theta]
-    
     % Transform scan to world frame
     scan = transformScan(rawScans{i}, currentPose);
-    
     % Concatenate together
     rawPoints = [rawPoints; scan.Cartesian];
-
     [scans, poses] = scansAndPoses(slamAlg);
     map = buildMap(scans, poses, mapResolution, maxLidarRange);
     rawPointsMap = binaryOccupancyMap(map.XWorldLimits(2) - map.XWorldLimits(1), ...
