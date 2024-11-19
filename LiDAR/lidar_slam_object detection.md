@@ -81,15 +81,21 @@ end
 
 
 
-results:![78c331f7-d4ac-47a8-a711-d8d321a3387a](https://github.com/user-attachments/assets/49f2d574-af7b-42da-934f-962056095956)
+results:
+3s->5s
+![78c331f7-d4ac-47a8-a711-d8d321a3387a](https://github.com/user-attachments/assets/49f2d574-af7b-42da-934f-962056095956)
+5s->7s
 ![57ff0690-edfd-448b-b4b8-17723e405d88](https://github.com/user-attachments/assets/9658ff1b-7ab1-4e94-9337-d3c1a7f76912)
+7s->9s
 ![8c1def71-360e-4fc9-9bcd-174ce487e76d](https://github.com/user-attachments/assets/80190156-59c9-46c8-9a48-d48830d18ff1)
+9s->11s
 ![682ba813-d509-423a-bb77-79501ef2e19a](https://github.com/user-attachments/assets/360e7192-7ecf-4288-b746-a7c8e7cecaf0)
+15->17s
 ![fc1ce32a-5ccf-444b-a0c6-8e56773682da](https://github.com/user-attachments/assets/9c040d07-9ee6-49a6-bf9d-bc3ab1c8c985)
 
 
 
 Highlighted is figure above new "dynamic object" -> Below is 2seconds later, yellow on map labelled "diff" shows where the person is. 
 
-
+Note that in 15->17s no object is moving therofre no yellow is identified
  
