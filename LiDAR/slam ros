@@ -128,3 +128,69 @@ show(map);
 title('Constructed Map');
 
 
+suppose now we have an object moving in the SLAM, and we want to seperate object from background - we now have a map object and slamALg object which contain occupancy map and raw data
+below is code to extract difference between those 2 
+
+
+[rawScans, rawPoses] = scansAndPoses(slamAlg);% Extract raw data
+% Initialize array for storing raw points
+rawPoints = [];
+
+% Transform each scan to the world frame
+for i = 1:length(rawScans)
+    
+    currentPose = rawPoses(i, :);  % Extract current pose as [x, y, theta]
+    
+    % Transform scan to world frame
+    scan = transformScan(rawScans{i}, currentPose);
+    
+    % Concatenate together
+    rawPoints = [rawPoints; scan.Cartesian];
+end
+
+% Visualize the raw points
+figure;
+scatter(rawPoints(:, 1), rawPoints(:, 2), '.');
+title('Raw Data Points from slamAlg');
+axis equal;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%workijng
+
+% Create a binary occupancy map using the resolution of the existing map
+rawPointsMap = binaryOccupancyMap(map.XWorldLimits(2) - map.XWorldLimits(1), ...
+                                  map.YWorldLimits(2) - map.YWorldLimits(1), ...
+                                  map.Resolution);
+
+% Set the grid origin to match the existing map
+rawPointsMap.GridLocationInWorld = map.GridLocationInWorld;
+
+% Mark cells occupied by the raw points
+setOccupancy(rawPointsMap, rawPoints, 1);  % Mark occupied cells
+
+
+% Change map format to matrices
+rawMatrix = occupancyMatrix(rawPointsMap);
+mapMatrix = occupancyMatrix(map);
+
+% Ensure matrices are the same size
+sizeRaw = size(rawMatrix);
+sizeFinal = size(mapMatrix);
+
+if ~isequal(sizeRaw, sizeFinal)
+    maxSize = max(sizeRaw, sizeFinal);
+    rawMatrix = padarray(rawMatrix, maxSize - sizeRaw, NaN, 'post');
+    mapMatrix = padarray(mapMatrix, maxSize - sizeFinal, NaN, 'post');
+end
+
+% diff
+diffMatrix = rawMatrix - mapMatrix;
+
+% show diff
+figure;
+imagesc(diffMatrix);
+colorbar;
+title('Difference Between Raw Points and map');
+
+
+
+
+
