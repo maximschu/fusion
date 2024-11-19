@@ -1,43 +1,28 @@
-# FLIR One Pro (Android USB-C)
-### Currently in possession
-```
-Thermal Resolution (160 x 120)
-Temperature Range of -20C to 400C
-```
-**Cannot be connected to PC**
+# IR Camera
+The Waveshare Thermal USB Camera connects via USB to Windows, Android and Raspberry pi.
 
-### Guide
-1. Download FLIR One app (Android via Google Play)
-2. Ensure FLIR is charged
-3. Open the app, plug and play
+It has a thermal resolution of 80x62 pixels and a maximum frame rate of 25fps.
 
-# Seek Thermal Compact Series
-The Seek Thermal Compact, CompactXR and CompactPRO are all compatible with the open source library:
+For more information see the wiki page here :
+[Waveshare Wiki Page](https://www.waveshare.com/wiki/Thermal_Camera_HAT)
 
-https://github.com/OpenThermal/libseek-thermal
 
-This allows us to access and process the data on PC, live
+## Windows Guide
+1. Plug in the IR Camera via USB
+2. Download the following application: 
+[Link](https://files.waveshare.com/wiki/Thermal-Camera-HAT/Thermal_USB_Camera_PC_Software.zip)
 
-Does not support absolute temperature readings (only relative), potentially could be fixed?
-```
-Price:   ~ £200 - 400 depending on model
-Compact:    206 x 156 thermal resolution with 36° FOV
-CompactXR:  206 x 156 thermal resolution with 20° FOV
-CompactPRO: 320 x 240 thermal resolution with 32° FOV
-```
+3. Run the application and click the connect button after selecting the correct serial port
+GUIIMG
+4. You should recieve an output similar to this
+IMG
+5. Clicking on a point will allow you to read off the temperature at a certain point
+6. The bottom right hand corner has a record function, where you can capture a timeseries into a text file
 
-# Raspberry Pi IR Modules
-Raspberry Pi modules are convenient to access and process the data from the sensors
+NB: It is recommended to leave filtering on high. Additionally, if any issues arise, try pressing the physical reset button on the device
 
-https://thepihut.com/products/long-wave-ir-thermal-imaging-camera-module
 
-```
-Price: £115
-Module 1: 80 x 62 thermal resolution with 45° FOV
-```
-https://thepihut.com/products/mlx90641-ir-array-thermal-imaging-camera
-```
-Price: £85
-Module 2: 16 x 12 thermal resolution 
-REJECTED POOR RESOLUTION
-```
+See the example file in this directory named ```SN152A01030FEF.txt``` which records the temperature values of every pixel for each frame of the image.
+
+See scrappy example of thermal imaging at approximately 4m:
+IMG
