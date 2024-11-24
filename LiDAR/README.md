@@ -34,9 +34,7 @@ theta: 333.41 Dist: 00000.00
 
  Or run 
  PS C:\Users\maksy\Desktop\LIDAR\rplidar_sdk-master\output\x64\Debug> .\frame_grabber --channel --serial \\.\COM3 115200
- ![image](https://github.com/user-attachments/assets/4e7d72c5-d23b-4da7-8e91-74708e19280f)
-![image](https://github.com/user-attachments/assets/ecfc34c5-d140-4cc0-9dee-d43addcaf5e7)
-![image](https://github.com/user-attachments/assets/1681790f-390f-4b39-b114-ee5d021229e8)
+
 
 
 
