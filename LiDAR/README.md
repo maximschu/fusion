@@ -136,4 +136,9 @@ Highlighted is figure above new "dynamic object" -> Below is 2seconds later, yel
 
 Note that in 15->17s no object is moving therofre no yellow is identified
  
+Current optimised code is at optimised_LiDAR_object_detection_matlab 
+
+do not do more than 208 figures as that is matlab limit.
+
+zip file with large test of 250 images attatched under large_test_zip
 
