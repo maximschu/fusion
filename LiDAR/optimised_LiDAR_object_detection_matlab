@@ -1,0 +1,88 @@
+close all
+clear all
+sub = rossubscriber('/scan', 'DataFormat', 'struct');
+maxLidarRange = 8; % Maximum range of your LiDAR sensor in meters
+mapResolution = 20; % Resolution of the map (cells per meter)
+
+slamAlg = lidarSLAM(mapResolution, maxLidarRange);
+slamAlg.LoopClosureThreshold = 210;  
+slamAlg.LoopClosureSearchRadius = 8; 
+
+maxIterations = 250; % Adjust based on the number of scans you have
+
+% Pre-allocate cell arrays for storing data
+rawPointsArray = cell(maxIterations, 1);
+posesArray = cell(maxIterations, 1);
+tic
+% Main loop to collect data
+for i = 1:maxIterations
+    scanMsg = receive(sub, 10);
+    ranges = double(scanMsg.Ranges);
+
+
+    numAngles = numel(ranges); 
+    angles = linspace(double(scanMsg.AngleMin), double(scanMsg.AngleMax), numAngles);
+
+    % Create the lidarScan object
+    scan = lidarScan(ranges, angles);
+
+    % Add the scan to the SLAM algorithm
+    [isAccepted, ~, ~] = addScan(slamAlg, scan);
+
+    % Extract scans and poses
+    [rawScans, rawPoses] = scansAndPoses(slamAlg);
+    posesArray{i} = rawPoses;
+
+    % Transform scan to world frame
+    currentPose = rawPoses(i, :);  % Extract current pose as [x, y, theta]
+    scan = transformScan(rawScans{i}, currentPose);
+
+    % Store raw points
+    rawPointsArray{i} = scan.Cartesian;
+   
+end
+toc
+disp("done-data-collect");
+
+% Build the SLAM map
+[scans, poses] = scansAndPoses(slamAlg);
+slamMap = buildMap(scans, poses, mapResolution, maxLidarRange);
+
+% Post-processing loop
+for i = 1:maxIterations
+    % Create an occupancy map for raw points
+    rawPointsMap = binaryOccupancyMap(slamMap.XWorldLimits(2) - slamMap.XWorldLimits(1), ...
+                                      slamMap.YWorldLimits(2) - slamMap.YWorldLimits(1), ...
+                                      slamMap.Resolution);
+
+    % Set the grid origin to match the SLAM map
+    rawPointsMap.GridLocationInWorld = slamMap.GridLocationInWorld;
+
+    % Mark cells occupied by the raw points
+    setOccupancy(rawPointsMap, rawPointsArray{i}, 1);  % Mark occupied cells
+
+    % Convert maps to occupancy matrices
+    rawMatrix = occupancyMatrix(rawPointsMap);
+    slamMatrix = occupancyMatrix(slamMap);
+
+    % Ensure matrices are the same size
+    sizeRaw = size(rawMatrix);
+    sizeSlam = size(slamMatrix);
+
+    if ~isequal(sizeRaw, sizeSlam)
+        maxSize = max(sizeRaw, sizeSlam);
+        rawMatrix = padarray(rawMatrix, maxSize - sizeRaw, NaN, 'post');
+        slamMatrix = padarray(slamMatrix, maxSize - sizeSlam, NaN, 'post');
+    end
+
+    % Compute the difference matrix
+    diffMatrix = rawMatrix - slamMatrix;
+
+    % Plot the difference
+    figure();
+    imagesc(diffMatrix);
+    colorbar;
+    title(['Diff Matrix for Iteration ' num2str(i)]);
+end
+
+disp("done post");
