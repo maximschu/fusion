@@ -1,7 +1,7 @@
 close all
 clear all
 
-runName = "Test";
+
 maxIterations = 40; % Adjust based on the number of scans you have
 
 sub = rossubscriber('/scan', 'DataFormat', 'struct');
@@ -74,7 +74,7 @@ centersArray = cell(maxIterations, 1); % Each entry will store [frame, x, y]
 
 
 % Post-processing loop
-for i = 1:maxIterations%%%%%%%%%%%%%%%%%%%%%%%%CHANGED TO TRIAL
+for i = 1:maxIterations
     % Create an occupancy map for raw points
     rawPointsMap = binaryOccupancyMap(slamMap.XWorldLimits(2) - slamMap.XWorldLimits(1), ...
                                       slamMap.YWorldLimits(2) - slamMap.YWorldLimits(1), ...
