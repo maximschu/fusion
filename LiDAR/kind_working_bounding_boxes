@@ -1,0 +1,263 @@
+close all
+clear all
+
+runName = "Test";
+maxIterations = 40; % Adjust based on the number of scans you have
+
+sub = rossubscriber('/scan', 'DataFormat', 'struct');
+
+maxLidarRange = 8; % Maximum range of your LiDAR sensor in meters
+mapResolution = 20; % Resolution of the map (cells per meter)
+
+slamAlg = lidarSLAM(mapResolution, maxLidarRange);
+slamAlg.LoopClosureThreshold = 210;  % Adjust based on environment
+slamAlg.LoopClosureSearchRadius = 8; % Maximum radius for loop closure
+
+% Pre-allocate cell arrays for storing data
+rawPointsArray = cell(maxIterations, 1); % Store raw point data
+posesArray = cell(maxIterations, 1); % Store poses for each iteration
+
+% Initialize array to store current positions
+currentPositionsArray = zeros(maxIterations, 3); % Columns: [x, y, theta]
+disp("Start");
+tic
+
+scanMsgArray = cell(maxIterations, 1);
+
+
+for i = 1:maxIterations
+    scanMsgArray{i} = receive(sub,10);
+end
+toc
+disp("^^^ Storage Time")
+
+tic
+%
+% Main loop to collect data
+for i = 1:maxIterations
+    scanMsg = scanMsgArray{i};
+    ranges = double(scanMsg.Ranges);
+
+
+    numAngles = numel(ranges); 
+    angles = linspace(double(scanMsg.AngleMin), double(scanMsg.AngleMax), numAngles);
+
+    % Create the lidarScan object
+    scan = lidarScan(ranges, angles);
+
+    % Add the scan to the SLAM algorithm
+    [isAccepted, ~, ~] = addScan(slamAlg, scan);
+
+    % Extract scans and poses
+    [rawScans, rawPoses] = scansAndPoses(slamAlg);
+    posesArray{i} = rawPoses;
+
+    % Transform scan to world frame
+    currentPose = rawPoses(i, :);  % Extract current pose as [x, y, theta]
+    scan = transformScan(rawScans{i}, currentPose);
+
+    % Store raw points
+    rawPointsArray{i} = scan.Cartesian;
+   
+end
+
+
+toc
+
+disp("^^^ Time for Data collection, complete!");
+
+% Build the SLAM map
+[scans, poses] = scansAndPoses(slamAlg);
+slamMap = buildMap(scans, poses, mapResolution, maxLidarRange);
+% Initialize array to store cluster centers with frame number
+centersArray = cell(maxIterations, 1); % Each entry will store [frame, x, y]
+
+
+% Post-processing loop
+for i = 1:maxIterations%%%%%%%%%%%%%%%%%%%%%%%%CHANGED TO TRIAL
+    % Create an occupancy map for raw points
+    rawPointsMap = binaryOccupancyMap(slamMap.XWorldLimits(2) - slamMap.XWorldLimits(1), ...
+                                      slamMap.YWorldLimits(2) - slamMap.YWorldLimits(1), ...
+                                      slamMap.Resolution);
+
+    % Set the grid origin to match the SLAM map
+    rawPointsMap.GridLocationInWorld = slamMap.GridLocationInWorld;
+
+    % Mark cells occupied by the raw points
+    setOccupancy(rawPointsMap, rawPointsArray{i}, 1);  % Mark occupied cells
+
+    % Convert maps to occupancy matrices
+    rawMatrix = occupancyMatrix(rawPointsMap);
+    slamMatrix = occupancyMatrix(slamMap);
+
+    % Ensure matrices are the same size
+    sizeRaw = size(rawMatrix);
+    sizeSlam = size(slamMatrix);
+
+    if ~isequal(sizeRaw, sizeSlam)
+        maxSize = max(sizeRaw, sizeSlam);
+        rawMatrix = padarray(rawMatrix, maxSize - sizeRaw, NaN, 'post');
+        slamMatrix = padarray(slamMatrix, maxSize - sizeSlam, NaN, 'post');
+    end
+
+    % Compute the difference matrix
+    diffMatrix = rawMatrix - slamMatrix;
+
+    % Define axes limits in meters based on the map's world limits
+    xLimits = linspace(slamMap.XWorldLimits(1), slamMap.XWorldLimits(2), size(diffMatrix, 2));
+    yLimits = linspace(slamMap.YWorldLimits(1), slamMap.YWorldLimits(2), size(diffMatrix, 1));
+
+    % Plot the original diffMatrix with adjusted axes
+     
+
+    figure();
+    fig = figure('Visible','off');
+    imagesc(xLimits, yLimits, diffMatrix); % Use x and y limits from the SLAM map
+    colorbar;
+    title(['Diff Matrix for Iteration ' num2str(i)]);
+    xlabel('X [meters]');
+    ylabel('Y [meters]');
+    axis equal;
+    axis tight;
+
+    fileName = ['Diff_' num2str(i)];
+    saveas(fig, [fileName, '.png']);
+
+    % Filter noise and identify clusters
+    threshold = 0.8; % Yellow threshold
+    neighborThreshold = 4; % Minimum neighbors to keep a pixel
+    filteredImg = filterYellowNoise(diffMatrix, threshold, neighborThreshold);
+
+    % Detect clusters and create bounding boxes
+    centers = detectClustersThresholdWithOverlay(filteredImg, threshold, diffMatrix, xLimits, yLimits, i);
+
+    % Store centers in the array with frame number
+    if ~isempty(centers)
+        centersArray{i} = [repmat(i, size(centers, 1), 1), centers]; % Add frame number
+    else
+        centersArray{i} = []; % If no centers detected, keep empty
+    end
+
+    % Display cluster centers 
+    %disp(['Iteration ' num2str(i) ' cluster centers:']);
+    %disp(centers);
+end
+
+% Combine all centers into one array for easy access
+allCenters = cell2mat(centersArray); % Concatenate all detected centers
+disp('All detected cluster centers:');
+disp(array2table(allCenters, 'VariableNames', {'Frame', 'X', 'Y'}));
+
+disp("Post-processing complete!");
+
+% Detect Clusters with Overlay Function
+function centers = detectClustersThresholdWithOverlay(imgArray, threshold, diffMatrix, xLimits, yLimits, i)
+    % Input:
+    %   imgArray - Filtered array (values between -1 and 1)
+    %   threshold - Threshold value to identify clusters (e.g., 0.8)
+    %   diffMatrix - Original difference matrix for overlay visualization
+    %   xLimits, yLimits - Axes limits in world coordinates
+    % Output:
+    %   centers - List of [x, y] coordinates of cluster centers
+
+    % Step 1: Create a binary mask where values > threshold
+    BW = imgArray > threshold;
+
+    % Step 2: Find connected components
+    CC = bwconncomp(BW); % Get connected components
+    stats = regionprops(CC, 'BoundingBox', 'Centroid'); % Bounding boxes and centroids
+
+    % Initialize centers array
+    centers = [];
+
+    % Step 3: Plot the filtered diffMatrix with bounding boxes overlay
+    figure();
+    fig = figure('Visible','off');
+    imagesc(xLimits, yLimits, diffMatrix); % Adjust axes to match occupancy map
+    colorbar;
+    hold on;
+
+    % Step 4: Loop through each cluster
+    for k = 1:length(stats)
+        % Get bounding box and centroid
+        bbox = stats(k).BoundingBox; % [x_min, y_min, width, height]
+        centroid = stats(k).Centroid; % [x, y] of the center
+
+        % Convert pixel coordinates to world coordinates
+        bboxWorld = [xLimits(1) + bbox(1) * (xLimits(end) - xLimits(1)) / size(diffMatrix, 2), ...
+                     yLimits(1) + bbox(2) * (yLimits(end) - yLimits(1)) / size(diffMatrix, 1), ...
+                     bbox(3) * (xLimits(end) - xLimits(1)) / size(diffMatrix, 2), ...
+                     bbox(4) * (yLimits(end) - yLimits(1)) / size(diffMatrix, 1)];
+
+        centroidWorld = [xLimits(1) + centroid(1) * (xLimits(end) - xLimits(1)) / size(diffMatrix, 2), ...
+                         yLimits(1) + centroid(2) * (yLimits(end) - yLimits(1)) / size(diffMatrix, 1)];
+
+        % Add centroid to centers array
+        centers = [centers; centroidWorld];
+
+        % Overlay the bounding box in world coordinates
+        rectangle('Position', bboxWorld, 'EdgeColor', 'r', 'LineWidth', 2); % Draw bounding box
+        plot(centroidWorld(1), centroidWorld(2), 'b*', 'MarkerSize', 10); % Mark the center
+    end
+    hold off;
+
+    % Add title to the plot
+    title('Filtered Diff Matrix with Bounding Boxes Overlay');
+    xlabel('X [meters]');
+    ylabel('Y [meters]');
+    axis equal;
+    axis tight;
+    
+    fileName = ['ObjectTracking_' num2str(i)];
+    saveas(fig, [fileName, '.png']);
+end
+
+function filteredImg = filterYellowNoise(imgArray, threshold, minClusterSize)
+    % Input:
+    %   imgArray - Input array with values between -1 and 1
+    %   threshold - Threshold value to consider a cell as yellow (e.g., 0.8)
+    %   minClusterSize - Minimum number of pixels for a cluster to be retained
+    % Output:
+    %   filteredImg - Processed image array with isolated noise removed
+    
+    % Step 1: Create a binary mask for values greater than the threshold
+    BW = imgArray > threshold;
+for t = 1 : 5
+    [rows, cols, ~] = size(BW);
+ for i = 2:rows-1%%start at 2 to avoid out of bounds error
+ for j = 2:cols-1%%start at 2 to avoid out of bounds error
+ if BW(i,j) == 0%%if pixel is black
+ %%checks 8 nearest neighbours
+ cnt = BW(i-1,j-1) + BW(i-1,j) + BW(i-1,j+1) +...
+ BW(i,j-1) + BW(i,j+1) + BW(i+1,j-1) + BW(i+1,j) + BW(i+1, j+1);
+ if cnt > 5 %%if 5 or more of these pixels are white fills in the pixel as white
+ BW(i,j) = 1;
+ end
+ end
+ end
+ end
+end
+
+    %%%%%%%%%%%%this may be the probelm ------- 
+    % Step 2: Identify connected components (clusters)
+    CC = bwconncomp(BW); % Get connected components
+    
+    % Step 3: Filter out small clusters based on minClusterSize
+    clusterSizes = cellfun(@numel, CC.PixelIdxList); % Calculate size of each cluster
+    validClusters = clusterSizes >= minClusterSize; % Retain clusters meeting size threshold
+
+    % Create a filtered binary mask with only valid clusters
+    filteredBW = false(size(BW));
+    for k = 1:CC.NumObjects
+        if validClusters(k)
+            filteredBW(CC.PixelIdxList{k}) = true;
+        end
+    end
+
+    % Step 4: Replace non-cluster pixels with the original background value
+    filteredImg = imgArray; % Copy the original array
+    filteredImg(~filteredBW) = -1; % Set non-significant points to background value (e.g., -1)
+end
+
+
+close all;
