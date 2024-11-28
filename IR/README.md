@@ -26,3 +26,41 @@ See the example file in this directory named ```SN152A01030FEF.txt``` which reco
 
 See scrappy example of thermal imaging at approximately 4m:
 ![image](https://github.com/user-attachments/assets/e39c8ca2-2215-4db7-9981-7f68c9804210)
+
+
+## Extracting Data Using USB
+1. Download pysenxor-master.zip [[Link](https://github.com/maximschu/fusion/blob/main/IR/pysenxor-master.zip)] contained in the IR folder 
+   (setup.py in this zip has been slightly altered for non raspberry pi usage - eliminates the need of SPI)
+
+2. ```
+   cd pysenxor-master
+   ```
+
+3. Type the following into terminal 
+   ```
+   pip install -e./
+   ```
+   This is mainly for the installation of the python library "pysenxor" for interacting with this specific Thermal Camera.
+4. Contained inside the folder are also some example scripts.
+   The most important ones are
+    - stream_usb.py (live feed)
+      
+      <img width="300" alt="image" src="https://github.com/user-attachments/assets/15553fdf-e820-4b85-a000-3a23c0da79ac">
+
+    - single_capture_usb.py (one single frame plotted using pyplot)
+  
+      <img width="350" alt="image" src="https://github.com/user-attachments/assets/07e87d55-a2c1-47f9-ae0c-5bdba5135956">
+
+    - senxor_mmx.py (outputs three live frames: raw, filtered, segmented)
+  
+      <img width="713" alt="image" src="https://github.com/user-attachments/assets/b38a417b-2439-4106-a25b-15965120abd1">
+
+    Anything with "_spi" can be ignored as they are for Raspberry Pi.
+  
+5. Temperature of each pixel is stored in an array (see csv example ```data_example.csv```)
+
+6.  Here's pic with a colour/temperature scale for reference :)
+
+   <img width="300" alt="image" src="https://github.com/user-attachments/assets/c9651b53-eb74-4fb5-9b81-d5a57cf1db9c">
+
+   
