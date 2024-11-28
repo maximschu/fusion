@@ -29,7 +29,7 @@ See scrappy example of thermal imaging at approximately 4m:
 
 
 ## Extracting Data Using USB
-1. Download pysenxor-master.zip [[Link](https://github.com/maximschu/fusion/blob/main/IR/pysenxor-master.zip)] contained in the IR folder 
+1. Download [pysenxor-master.zip](https://github.com/maximschu/fusion/blob/main/IR/pysenxor-master.zip) contained in this directory 
    (setup.py in this zip has been slightly altered for non raspberry pi usage - eliminates the need of SPI)
 
 2. ```
@@ -43,15 +43,15 @@ See scrappy example of thermal imaging at approximately 4m:
    This is mainly for the installation of the python library "pysenxor" for interacting with this specific Thermal Camera.
 4. Contained inside the folder are also some example scripts.
    The most important ones are
-    - stream_usb.py (live feed)
+    - **stream_usb.py** (live feed)
       
       <img width="300" alt="image" src="https://github.com/user-attachments/assets/15553fdf-e820-4b85-a000-3a23c0da79ac">
 
-    - single_capture_usb.py (one single frame plotted using pyplot)
+    - **single_capture_usb.py** (one single frame plotted using pyplot)
   
       <img width="350" alt="image" src="https://github.com/user-attachments/assets/07e87d55-a2c1-47f9-ae0c-5bdba5135956">
 
-    - senxor_mmx.py (outputs three live frames: raw, filtered, segmented)
+    - **senxor_mmx.py** (outputs three live frames: raw, filtered, segmented)
   
       <img width="713" alt="image" src="https://github.com/user-attachments/assets/b38a417b-2439-4106-a25b-15965120abd1">
 
