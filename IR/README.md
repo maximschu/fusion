@@ -40,7 +40,7 @@ See scrappy example of thermal imaging at approximately 4m:
    ```
    pip install -e./
    ```
-   This is mainly for the installation of the python library "pysenxor" for interacting with this specific Thermal Camera.
+   This is mainly for the installation of the python library "pysenxor" for interacting with this specific thermal camera.
 4. Contained inside the folder are also some example scripts.
    The most important ones are
     - **stream_usb.py** (live feed)
