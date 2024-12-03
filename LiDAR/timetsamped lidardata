@@ -493,3 +493,46 @@ toc
 % % % % 
 % % % % % Inform the user
 % % % % disp(['Tracked history written to file: ', outputFile]);
+
+
+
+
+
+
+% Specify the output CSV file
+outputFile = 'TrackedObjectHistory.csv';
+
+% Open the file for writing
+fid = fopen(outputFile, 'w');
+
+% Check if the file was successfully opened
+if fid == -1
+    error('Could not open the file for writing.');
+end
+
+% Write header row
+fprintf(fid, 'ObjectID,PositionX,PositionY,Timestamp\n');
+
+% Write tracked history to the CSV file
+for i = 1:size(trackedHistory, 1)
+    % Extract object ID
+    objectID = trackedHistory{i, 1};
+    % Extract positions and timestamps
+    positions = trackedHistory{i, 2};
+    timestamps = trackedHistory{i, 3};
+    
+    % Write each position and timestamp with the object ID
+    for j = 1:size(positions, 1)
+        fprintf(fid, '%d,%.4f,%.4f,%.6f\n', ...
+                objectID, positions(j, 1), positions(j, 2), timestamps(j));
+    end
+end
+
+% Close the file
+fclose(fid);
+
+% Inform the user
+disp(['Tracked history written to CSV file: ', outputFile]);
+
+
+
