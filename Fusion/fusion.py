@@ -15,8 +15,6 @@ y = 0.06
 z = -0.08
 
 cameradf = pd.read_csv('camera.csv')
-print("OLD:")
-print(cameradf)
 
 lidardf = pd.read_csv('lidar.csv')
 
@@ -69,8 +67,49 @@ cameradf['x'] = xcol
 cameradf['y'] = ycol
 cameradf['z'] = zcol
 
-print("NEW:")
+print("Camera:")
 print(cameradf)
+
+print("LIDAR:")
+print(lidardf)
 
 csv_path = "cameratransformed.csv"
 cameradf.to_csv(csv_path, index=False, header=True)
+
+lidarset = list(set(lidardf["ObjectID"].to_list()))
+lidarset.sort()
+
+print(lidarset)
+
+cameradf = cameradf.sort_values(by=['t'])
+lencameradf = len(cameradf)
+
+# 100ms (in ns)
+tthreshold = 10000000000
+
+for id in lidarset:
+    iddf = lidardf.loc[lidardf['ObjectID'].eq(id)]
+
+    for index, row in iddf.iterrows():
+        t = row["Timestamp"]*pow(10,9)
+        
+        camerat = cameradf["t"].to_list()
+        lencamerat = len(camerat)
+        cameraidx = int(lencamerat/2)
+        print(lencamerat)
+        print(cameraidx)
+        print(camerat[600])
+
+        while True:
+            if (camerat[cameraidx] - tthreshold) <= t <= (camerat[cameraidx]):
+                print("match")
+                break
+            elif ((camerat[cameraidx] - tthreshold) < t):
+                camerat = camerat[:len(camerat)//2]
+                lencamerat = len(camerat)
+                cameraidx = int(lencamerat/2)
+            elif ((camerat[cameraidx] + tthreshold) > t):
+                camerat = camerat[len(camerat)//2:]
+                lencamerat = len(camerat)
+                cameraidx = int(lencamerat/2)
+    
