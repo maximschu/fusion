@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 
-xthetad = 90
+xthetad = 180
 ythetad = 0
 zthetad = 180
 
