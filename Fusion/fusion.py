@@ -2,17 +2,17 @@ import pandas as pd
 import numpy as np
 
 
-xthetad = 180
-ythetad = 0
-zthetad = 180
+xthetad = -90
+ythetad = 180
+zthetad = 0
 
 xtheta = np.radians(xthetad)
 ytheta = np.radians(ythetad)
 ztheta = np.radians(zthetad)
 
 x = 0
-y = 0.08
-z = -0.06
+y = 0.06
+z = -0.08
 
 cameradf = pd.read_csv('camera.csv')
 print("OLD:")
@@ -71,3 +71,6 @@ cameradf['z'] = zcol
 
 print("NEW:")
 print(cameradf)
+
+csv_path = "cameratransformed.csv"
+cameradf.to_csv(csv_path, index=False, header=True)
