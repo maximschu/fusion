@@ -1,0 +1,407 @@
+
+
+
+close all;
+clear all;
+
+% Parameters
+maxIterations = 50; % Adjust based on the number of scans you have
+maxLidarRange = 8; % Maximum range of your LiDAR sensor in meters
+mapResolution = 20; % Resolution of the map (cells per meter)
+
+% ROS Subscriber
+sub = rossubscriber('/scan', 'DataFormat', 'struct');
+
+% SLAM Algorithm Configuration
+slamAlg = lidarSLAM(mapResolution, maxLidarRange);
+slamAlg.LoopClosureThreshold = 210;  % Adjust based on environment
+slamAlg.LoopClosureSearchRadius = 8; % Maximum radius for loop closure
+
+% Pre-allocate cell arrays for storing data
+rawPointsArray = cell(maxIterations, 1); % Store raw point data
+posesArray = cell(maxIterations, 1); % Store poses for each iteration
+
+disp("Start");
+disp(['Current time: ', datestr(now, 'HH:MM:SS')]);
+tic
+
+scanMsgArray = cell(maxIterations, 2); % Store message and timestamps
+for i = 1:maxIterations
+    scanMsg = receive(sub, 10);
+    scanMsgArray{i, 1} = scanMsg; % Store scan message
+    scanMsgArray{i, 2} = posixtime(datetime(now, 'ConvertFrom', 'datenum')); % Store timestamp
+    pause(0.2);
+end
+
+
+toc;
+disp("^^^ Storage Time");
+
+
+tic;
+% Main loop to process scans
+for i = 1:maxIterations
+    scanMsg = scanMsgArray{i, 1};
+    timestamp = scanMsgArray{i, 2}; % Extract timestamp
+    ranges = double(scanMsg.Ranges);
+    numAngles = numel(ranges); 
+    angles = linspace(double(scanMsg.AngleMin), double(scanMsg.AngleMax), numAngles);
+
+    % Create the lidarScan object
+    scan = lidarScan(ranges, angles);
+
+    % Add the scan to the SLAM algorithm
+    [isAccepted, ~, ~] = addScan(slamAlg, scan);
+
+    % Extract scans and poses
+    [rawScans, rawPoses] = scansAndPoses(slamAlg);
+    posesArray{i} = [rawPoses, repmat(timestamp, size(rawPoses, 1), 1)]; % Add numeric UNIX timestamp to poses
+
+
+    % Transform scan to world frame
+    currentPose = rawPoses(i, :);  % Extract current pose as [x, y, theta]
+    scan = transformScan(rawScans{i}, currentPose);
+
+    % Store raw points with timestamp
+    rawPointsArray{i} = {scan.Cartesian, timestamp}; % Include timestamp
+end
+toc;
+disp("^^^ Data Collection Complete!");
+
+tic
+% Build the SLAM map
+[scans, poses] = scansAndPoses(slamAlg);
+slamTimestamps = repmat(scanMsgArray{1, 2}, size(poses, 1), 1);
+slamMap = buildMap(scans, poses, mapResolution, maxLidarRange);
+
+% Tracking parameters
+trackingThreshold = 0.4;
+maxFramesNoUpdate = 3;
+nextObjectID = 1;
+confirmationThreshold = 4;
+
+% Initialize tracking structures
+trackedObjects = {}; % Each row: {ID, Position, FramesNoUpdate, ConfirmationCount, Confirmed, Timestamp}
+trackedHistory = {}; % Each row: {ID, Positions, Timestamps}
+
+% Post-processing loop
+for i = 1:maxIterations
+    % Create occupancy map for raw points
+    rawPointsMap = binaryOccupancyMap(slamMap.XWorldLimits(2) - slamMap.XWorldLimits(1), ...
+                                      slamMap.YWorldLimits(2) - slamMap.YWorldLimits(1), ...
+                                      slamMap.Resolution);
+
+    rawPointsMap.GridLocationInWorld = slamMap.GridLocationInWorld;
+    setOccupancy(rawPointsMap, rawPointsArray{i}{1}, 1); % Use raw points
+
+    % Convert maps to matrices
+    rawMatrix = occupancyMatrix(rawPointsMap);
+    slamMatrix = occupancyMatrix(slamMap);
+
+    rawMatrix = flipud(rawMatrix); % Flip along the Y-axis if required#
+    slamMatrix = flipud(slamMatrix); 
+    % Adjust matrix sizes
+    [rawMatrix, slamMatrix] = adjustMatrixSizes(rawMatrix, slamMatrix);
+
+    % Compute difference matrix
+    diffMatrix = rawMatrix - slamMatrix;
+
+    % Axes limits in meters
+    xLimits = linspace(slamMap.XWorldLimits(1), slamMap.XWorldLimits(2), size(diffMatrix, 2));
+    yLimits = linspace(slamMap.YWorldLimits(1), slamMap.YWorldLimits(2), size(diffMatrix, 1));
+
+    % Filter noise and detect clusters
+    threshold = 0.8;
+    neighborThreshold = 4;
+    filteredImg = filterYellowNoise(diffMatrix, threshold, neighborThreshold);
+
+    % Detect clusters
+    centers = detectClustersThresholdWithOverlay(filteredImg, threshold, diffMatrix, xLimits, yLimits, i);
+
+    % Update tracking with timestamps
+    [trackedObjects, trackedHistory, nextObjectID] = updateTrackingWithTimestamps(trackedObjects, centers, ...
+        trackingThreshold, maxFramesNoUpdate, trackedHistory, nextObjectID, confirmationThreshold, ...
+        rawPointsArray{i}{2}); % Pass the timestamp
+
+    % Visualize tracked objects
+    visualizeTracking(diffMatrix, trackedObjects, i, xLimits, yLimits);
+end
+
+
+disp("Tracking complete!");
+
+% Display tracked history
+disp('Tracked Object History:');
+for i = 1:size(trackedHistory, 1)
+    % Extract object ID
+    objectID = trackedHistory{i, 1};
+    % Extract positions and timestamps
+    positions = trackedHistory{i, 2};
+    timestamps = trackedHistory{i, 3};
+
+    % Display the tracked object ID
+    fprintf('Object ID: %d\n', objectID);
+    disp('Positions and Timestamps:');
+    
+    % Combine positions and timestamps for display
+    for j = 1:size(positions, 1)
+        fprintf('Position: [%0.4f, %0.4f], Timestamp: %d\n', ...
+                positions(j, 1), positions(j, 2), timestamps(j));
+    end
+end
+
+
+% Display tracked history
+disp('Tracked Object History:');
+for i = 1:size(trackedHistory, 1)
+    % Extract object ID
+    objectID = trackedHistory{i, 1};
+    % Extract positions and timestamps
+    positions = trackedHistory{i, 2};
+    timestamps = trackedHistory{i, 3};
+    
+    % Convert UNIX timestamps to datetime
+    humanReadableTime = datetime(timestamps, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+    
+    % Display the tracked object ID
+    fprintf('Object ID: %d\n', objectID);
+    disp('Positions and Times:');
+    
+   % Combine positions and times for display
+for j = 1:size(positions, 1)
+    fprintf('Position: [%0.4f, %0.4f], Timestamp: %.6f\n', ...
+            positions(j, 1), positions(j, 2), timestamps(j));
+end
+
+end
+
+
+
+
+% Helper Functions
+
+function [adjustedA, adjustedB] = adjustMatrixSizes(A, B)
+    % Convert matrices to double to handle NaN padding
+    A = double(A);
+    B = double(B);
+
+    % Get sizes
+    sizeA = size(A);
+    sizeB = size(B);
+    
+    % Determine the maximum size
+    maxSize = max(sizeA, sizeB);
+
+    % Pad arrays with NaN to match the maximum size
+    adjustedA = padarray(A, maxSize - sizeA, NaN, 'post');
+    adjustedB = padarray(B, maxSize - sizeB, NaN, 'post');
+end
+
+function filteredImg = filterYellowNoise(imgArray, threshold, minClusterSize)
+    % Input:
+    %   imgArray - Input array with values between -1 and 1
+    %   threshold - Threshold value to consider a cell as yellow (e.g., 0.8)
+    %   minClusterSize - Minimum number of pixels for a cluster to be retained
+    % Output:
+    %   filteredImg - Processed image array with isolated noise removed
+    
+    % Step 1: Create a binary mask for values greater than the threshold
+    BW = imgArray > threshold;
+    for t = 1 : 5
+        [rows, cols, ~] = size(BW);
+        for i = 2:rows-1 % start at 2 to avoid out of bounds error
+            for j = 2:cols-1 % start at 2 to avoid out of bounds error
+                if BW(i,j) == 0 % if pixel is black
+                    % checks 8 nearest neighbours
+                    cnt = BW(i-1,j-1) + BW(i-1,j) + BW(i-1,j+1) +...
+                          BW(i,j-1) + BW(i,j+1) + BW(i+1,j-1) + BW(i+1,j) + BW(i+1, j+1);
+                    if cnt > 5 % if 5 or more of these pixels are white fills in the pixel as white
+                        BW(i,j) = 1;
+                    end
+                end
+            end
+        end
+    end
+
+    % Step 2: Identify connected components (clusters)
+    CC = bwconncomp(BW); % Get connected components
+
+    % Step 3: Filter out small clusters based on minClusterSize
+    clusterSizes = cellfun(@numel, CC.PixelIdxList); % Calculate size of each cluster
+    validClusters = clusterSizes >= minClusterSize; % Retain clusters meeting size threshold
+
+    % Create a filtered binary mask with only valid clusters
+    filteredBW = false(size(BW));
+    for k = 1:CC.NumObjects
+        if validClusters(k)
+            filteredBW(CC.PixelIdxList{k}) = true;
+        end
+    end
+
+    % Step 4: Replace non-cluster pixels with the original background value
+    filteredImg = imgArray; % Copy the original array
+    filteredImg(~filteredBW) = -1; % Set non-significant points to background value (e.g., -1)
+end
+
+function centers = detectClustersThresholdWithOverlay(imgArray, threshold, diffMatrix, xLimits, yLimits, frameNum)
+    BW = imgArray > threshold;
+    CC = bwconncomp(BW);
+    stats = regionprops(CC, 'Centroid');
+    centers = [];
+    fig = figure('Visible', 'off');
+    imagesc(xLimits, yLimits, diffMatrix);
+    hold on;
+    for k = 1:length(stats)
+        centroid = stats(k).Centroid;
+        xCenter = xLimits(1) + (centroid(1) - 1) * (xLimits(end) - xLimits(1)) / (size(diffMatrix, 2) - 1);
+        yCenter = yLimits(1) + (centroid(2) - 1) * (yLimits(end) - yLimits(1)) / (size(diffMatrix, 1) - 1);
+        centers = [centers; xCenter, yCenter];
+        plot(centers(end, 1), centers(end, 2), 'b*');
+    end
+    hold off;
+    title(['Frame ', num2str(frameNum)]);
+    saveas(fig, ['Frame_', num2str(frameNum), '.png']);
+    close(fig); % Close the figure to save memory
+end
+
+function [trackedObjects, trackedHistory, nextObjectID] = updateTrackingWithTimestamps( ...
+    trackedObjects, centers, trackingThreshold, maxFramesNoUpdate, ...
+    trackedHistory, nextObjectID, confirmationThreshold, timestamp)
+
+    % Number of existing tracks and detections
+    numTracks = size(trackedObjects, 1);
+    numDetections = size(centers, 1);
+
+    % Initialize the cost matrix
+    costMatrix = zeros(numTracks, numDetections);
+
+    % Compute the cost (distance) between each track and detection
+    for i = 1:numTracks
+        for j = 1:numDetections
+            costMatrix(i, j) = norm(trackedObjects{i, 2} - centers(j, :));
+        end
+    end
+
+    % Set a large cost for distances beyond the tracking threshold
+    costOfNonAssignment = trackingThreshold;
+
+    % Solve the assignment problem using the built-in function
+    [assignments, unassignedTracks, unassignedDetections] = assignDetectionsToTracks(costMatrix, costOfNonAssignment);
+
+    % Initialize updated objects as a cell array
+    updatedObjects = {};
+
+    % Update matched tracks
+    for i = 1:size(assignments, 1)
+        trackIdx = assignments(i, 1);
+        detectionIdx = assignments(i, 2);
+
+        % Update the track with the detection
+        trackedObjects{trackIdx, 2} = centers(detectionIdx, :);
+        trackedObjects{trackIdx, 3} = 0; % Reset FramesNoUpdate counter
+
+        % Update confirmation count
+        trackedObjects{trackIdx, 4} = trackedObjects{trackIdx, 4} + 1;
+
+        % Confirm object if confirmation threshold is met
+        if trackedObjects{trackIdx, 4} >= confirmationThreshold
+            trackedObjects{trackIdx, 5} = true; % Confirm the object
+        end
+
+        % Update timestamp
+        trackedObjects{trackIdx, 6} = timestamp;
+
+        % Add this position to trackedHistory if confirmed
+        if trackedObjects{trackIdx, 5} % Check if confirmed
+            if isempty(trackedHistory)
+                % If trackedHistory is empty, initialize it with the current object
+                trackedHistory = {trackedObjects{trackIdx, 1}, centers(detectionIdx, :), timestamp};
+            else
+                % Find the index of the object's history
+                existingIDs = cell2mat(trackedHistory(:, 1));
+                historyIndex = find(existingIDs == trackedObjects{trackIdx, 1}, 1);
+
+                if isempty(historyIndex)
+                    % If the object is not yet in history, add it
+                    trackedHistory = [trackedHistory; {trackedObjects{trackIdx, 1}, centers(detectionIdx, :), timestamp}];
+                else
+                    % Append the new position and timestamp to the object's history
+                    trackedHistory{historyIndex, 2} = [trackedHistory{historyIndex, 2}; centers(detectionIdx, :)];
+                    trackedHistory{historyIndex, 3} = [trackedHistory{historyIndex, 3}; timestamp];
+                end
+            end
+        end
+
+        % Add to updated objects
+        updatedObjects = [updatedObjects; trackedObjects(trackIdx, :)];
+    end
+
+    % Increment the no-update counter for unmatched tracks
+    for i = 1:length(unassignedTracks)
+        trackIdx = unassignedTracks(i);
+        trackedObjects{trackIdx, 3} = trackedObjects{trackIdx, 3} + 1; % Increment FramesNoUpdate
+
+        % Add to updated objects
+        updatedObjects = [updatedObjects; trackedObjects(trackIdx, :)];
+    end
+
+    % Remove tracks that have not been updated for too long
+    if ~isempty(updatedObjects)
+        updatedObjects = updatedObjects(cell2mat(updatedObjects(:, 3)) < maxFramesNoUpdate, :);
+    end
+
+    % Create new tracks for unmatched detections
+    for i = 1:length(unassignedDetections)
+        detectionIdx = unassignedDetections(i);
+        newObject = {nextObjectID, centers(detectionIdx, :), 0, 1, false, timestamp}; % [ID, Position, FramesNoUpdate, ConfirmationCount, Confirmed, Timestamp]
+        updatedObjects = [updatedObjects; newObject];
+        nextObjectID = nextObjectID + 1;
+    end
+
+    % Update trackedObjects with the updated list
+    trackedObjects = updatedObjects;
+end
+
+
+
+function visualizeTracking(diffMatrix, trackedObjects, frameNumber, xLimits, yLimits)
+    % Create a figure for visualization
+    fig = figure('Visible', 'off'); % Create figure in invisible mode
+    imagesc(xLimits, yLimits, diffMatrix); % Plot the diffMatrix with correct axes
+    colorbar;
+    hold on;
+
+    % Loop through tracked objects and visualize
+    for j = 1:size(trackedObjects, 1)
+        % Get object position and ID
+        objPos = trackedObjects{j, 2};
+        objID = trackedObjects{j, 1};
+        isConfirmed = trackedObjects{j, 5};
+
+        if isConfirmed
+            % Plot confirmed objects in red
+            plot(objPos(1), objPos(2), 'ro', 'MarkerSize', 10, 'LineWidth', 2);
+        else
+            % Plot unconfirmed objects in cyan
+            plot(objPos(1), objPos(2), 'co', 'MarkerSize', 10, 'LineWidth', 2);
+        end
+
+        % Add text label for object ID
+        text(objPos(1) + 0.1, objPos(2), ...
+            ['ID: ', num2str(objID)], 'Color', 'yellow', 'FontSize', 12);
+    end
+    hold off;
+
+    % Add title and labels
+    title(['Tracked Objects at Frame ', num2str(frameNumber)]);
+    xlabel('X [meters]');
+    ylabel('Y [meters]');
+    axis equal;
+    axis tight;
+
+    % Save the figure to a file
+    saveas(fig, ['TrackedFrame_' num2str(frameNumber) '.png']);
+    close(fig); % Close the figure to save memory
+end
+toc
+
