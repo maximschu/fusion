@@ -17,7 +17,7 @@ z = -0.08
 
 cameradf = pd.read_csv('newcamera.csv')
 
-lidardf = pd.read_csv('newlidar.csv')
+lidardf = pd.read_csv('LIDAR.csv')
 
 cameraarray = cameradf[["x", "y", "z"]].to_numpy()
 
@@ -70,8 +70,6 @@ cameradf['z'] = zcol
 
 print("Camera:")
 print(cameradf)
-
-lidardf['PositionY'] += 1
 
 print("LIDAR:")
 print(lidardf)
@@ -161,7 +159,7 @@ for id in lidarset:
                 dist = np.linalg.norm(a - b)
 
                 # Threshold in m
-                distthr = 0.5
+                distthr = 0.25
 
                 if dist <= distthr:
                     matchlist.append(camerarow['ID'])
