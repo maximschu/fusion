@@ -14,7 +14,7 @@ LiDAR (RPLIDAR A2)
 
 Camera (Intel RealSense D435)
 
-IR (FLIR One Pro, change tbd)
+IR (Waveshare - Long-wave IR Thermal Imaging Camera Module)
 
 ## Assessment Deadlines
 | Coursework Type             | Due Date       | Weight          | 
