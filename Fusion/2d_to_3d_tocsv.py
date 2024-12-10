@@ -10,7 +10,7 @@ from ultralytics import YOLO
 t_total = 15
 
 # File Path
-csv_path = 'junk.csv'
+csv_path = 'newcamera.csv'
 
 def append_row(df, row):
     return pd.concat([
@@ -21,6 +21,7 @@ def append_row(df, row):
 df = pd.DataFrame(columns=('ID', 'label', 'x', 'y', 'z', 't'))
 
 model = YOLO("yolo11n.pt")
+#model.conf = 0.2
 
 # set up realsense stream
 pipeline = rs.pipeline()
@@ -62,6 +63,8 @@ while True:
             x1,y1,x2,y2 = map(int, box.xyxy[0])
             confidence_score = box.conf[0].item()
             label = model.names[int(box.cls[0].item())]
+            if (label != "person"):
+               break
 
             # None Error? Happens only occasionally on startup
             try:
@@ -79,6 +82,8 @@ while True:
             cv2.rectangle(color_image, (x1, y1), (x2,y2), color=(0,0,255), thickness=2)
             cv2.putText(color_image, f'{label}, Score: {confidence_score:.2f}', (x1, y1-20), color= (255, 0,0), fontFace= cv2.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
             cv2.putText(color_image, f'{depth_obj:.2f}m', (x_point, y_point), color= (0, 255,0), fontFace= cv2.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
+
+            #print(confidence_score)
 
 
             u, v = x_point, y_point

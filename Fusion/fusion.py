@@ -3,7 +3,7 @@ import numpy as np
 from collections import defaultdict
 
 
-xthetad = 90
+xthetad = -90
 ythetad = 0
 zthetad = 0
 
@@ -15,9 +15,9 @@ x = 0
 y = 0.06
 z = -0.08
 
-cameradf = pd.read_csv('camera.csv')
+cameradf = pd.read_csv('newcamera.csv')
 
-lidardf = pd.read_csv('lidar.csv')
+lidardf = pd.read_csv('newlidar.csv')
 
 cameraarray = cameradf[["x", "y", "z"]].to_numpy()
 
@@ -71,10 +71,12 @@ cameradf['z'] = zcol
 print("Camera:")
 print(cameradf)
 
+lidardf['PositionY'] += 1
+
 print("LIDAR:")
 print(lidardf)
 
-csv_path = "cameratransformed.csv"
+csv_path = "newcameratransformed.csv"
 cameradf.to_csv(csv_path, index=False, header=True)
 
 lidarset = list(set(lidardf["ObjectID"].to_list()))
@@ -159,7 +161,7 @@ for id in lidarset:
                 dist = np.linalg.norm(a - b)
 
                 # Threshold in m
-                distthr = 1
+                distthr = 0.5
 
                 if dist <= distthr:
                     matchlist.append(camerarow['ID'])
