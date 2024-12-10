@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+from functools import reduce
+import operator
+import itertools
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 xthetad = -90
@@ -169,6 +174,37 @@ for id in lidarset:
             if matchlist:
                 fusiondict[id].append(matchlist)
 
+# Lidar: Camera
 print(fusiondict)
 
+#objdict = defaultdict(list)
 
+objnodes = []
+objedges = []
+
+for k,v in fusiondict.items():
+    print(f"Key:    {k}")
+    out = reduce(operator.concat, v)
+    print(f"Values: {out}")
+    mode = max(set(out), key=out.count)
+    print(f"Mode:   {mode}")
+
+    # lidar IDs made negative
+    objpair = [-k, mode]
+
+    objnodes.extend(objpair)
+    objedges.append(objpair)
+
+objnodes = list(set(objnodes))
+
+print(f"objnodes: {objnodes}")
+print(f"objedges: {objedges}")
+
+G = nx.Graph()
+G.add_nodes_from(objnodes)
+G.add_edges_from(objedges)
+
+print("Connected:")
+# list of sets
+setlist = list(nx.connected_components(G))
+print(setlist)
