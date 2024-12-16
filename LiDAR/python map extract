@@ -1,0 +1,6 @@
+map=slamMap;occupancyMatrixData = occupancyMatrix(map);occupancyMatrixData=flipud(occupancyMatrixData);  % Returns a matrix of probabilities [0,1]
+ resolution = map.Resolution;  origin = [map.XLocalLimits(1), map.YLocalLimits(1)];save('mapData.mat', 'occupancyMatrixData', 'resolution', 'origin');
+ xLimits = map.XLocalLimits;
+yLimits = map.YLocalLimits;
+
+save('mapData.mat', 'occupancyMatrixData', 'resolution', 'xLimits', 'yLimits');
