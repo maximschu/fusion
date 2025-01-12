@@ -1,0 +1,13 @@
+a = arduino('COM6', 'Uno', 'Libraries', 'I2C');
+sensorobj =icm20948(a,'SampleRate',50,'SamplesPerRead',5,'ReadMode','Latest');
+[sensorReadings,overrun] = read(sensorobj)
+
+
+run following commands in matlab termninal, connect IMU to arduino 
+->SDA-A4
+->SCL-A5
+->Vin-3.3v; GND-gnd
+
+
+
+change com port as needed
