@@ -1,3 +1,6 @@
+obsolete now
+
+
 load(fullfile(pwd,'RUNN.mat'),'detectionLog','timeLog');
 detectionLog = detectionLog';
 
