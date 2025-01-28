@@ -208,3 +208,6 @@ print("Connected:")
 # list of sets
 setlist = list(nx.connected_components(G))
 print(setlist)
+
+nx.draw(G)
+plt.show()
