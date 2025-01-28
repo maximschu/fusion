@@ -63,8 +63,8 @@ while True:
             x1,y1,x2,y2 = map(int, box.xyxy[0])
             confidence_score = box.conf[0].item()
             label = model.names[int(box.cls[0].item())]
-           # if (label != "person"):
-            #   break
+            if (label != "person"):
+               break
 
             # None Error? Happens only occasionally on startup
             try:
