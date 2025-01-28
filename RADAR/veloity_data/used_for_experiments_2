@@ -1,0 +1,37 @@
+%tiradar = mmWaveRadar();
+%[detections, timestamp, measurements, overrun] = tiradar();
+clear all
+
+% Configuration file
+cfgFile = '5m.cfg';
+cfgPort = "COM7";
+dataPort = "COM8";
+
+
+% Create sensor 
+rdr = mmWaveRadar("TI AWR1642BOOST",...
+     ConfigPort = cfgPort,...
+     DataPort = dataPort, ...
+    ConfigFile=cfgFile,...
+    ReadMode="oldest",...
+    DetectionCoordinates="sensor spherical",...
+    EnableDopplerGroups=false,...
+    EnableRangeGroups=false,...
+    RemoveStaticClutter=false);
+
+% Allocate memory
+detectionLog = cell(1,0); 
+timeLog = zeros(1,0); 
+
+% Duration of recording in secondns
+disp(posixtime(datetime(now, 'ConvertFrom', 'datenum')));
+starttime=posixtime(datetime(now, 'ConvertFrom', 'datenum'));
+stopTime = 30; 
+disp("STARTING");
+% Record until stop time
+while isempty(timeLog) || timeLog(end) < stopTime
+    [detectionLog{end+1},timeLog(end+1)] = rdr();
+end
+
+disp("done?")
+save(fullfile(pwd,'EXPORT.mat'), 'detectionLog', 'timeLog');
