@@ -18,7 +18,7 @@
 
 ### Radar setup for live recording
 How to setup AWR1642 radar for live data
-1.	Install Support and Perform Hardware Setup for TI mmWave Hardware
+1.	[Install Support and Perform Hardware Setup for TI mmWave Hardware](https://uk.mathworks.com/help/releases/R2024b/radar/ug/install-support-for-ti-mmwave-hardware.html#mw_8ed6eefa-adc8-4d4f-863b-763aa02a6847)
 2.	Load up MATLAB > Home > Add-Ons>Get hardware support package
 3.	In search bar enter: “Radar Toolbox Support Package for Texas Instruments”
 4.	Click “Radar Toolbox Support Package for Texas Instruments mmWave Radar Sensors”
