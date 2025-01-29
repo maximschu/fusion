@@ -6,6 +6,7 @@ import operator
 import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
+import math
 
 cameradf = pd.read_csv('camera.csv')
 
@@ -371,8 +372,8 @@ print("Connected:")
 setlist = list(nx.connected_components(G))
 print(setlist)
 
-nx.draw(G)
-plt.show()
+#nx.draw(G)
+#plt.show()
 
 lidardf = lidardf.rename(columns={"Timestamp": "t", "ObjectID": "ID",  "PositionX": "x", "PositionY": "y"})
 print(lidardf)
@@ -431,10 +432,126 @@ for index, row in concatdf.iterrows():
             #print("exists")
             tempdf = pd.DataFrame(temp)
             print(tempdf)
-            fuseddata.append(1)
+            dflist = [d for _, d in tempdf.groupby(['ID'])]
+            print(dflist)
+            xtotal = 0
+            ytotal = 0
+            vtotal = 0
+            atotal = 0
+            c = 0
+            totallabel = ""
+            flag = True
+            for obj in dflist:
+                print("vvvvvvvvvvvv")
+                print(obj)
+                print(obj['t'])
+                print(type(obj['t']))
+                ttotal = obj['t'].iloc[0]
+                idtotal = obj['ID'].iloc[0]
+                for index, row in obj.iterrows():
+                    if (type(row['label']) == str):
+                        totallabel = row['label']
+                    if not (math.isnan(row['Velocity'])):
+                        c += 1
+                        vtotal += row['Velocity']
+                        atotal += row['Angle']
+                
+                # Populate t,x,y,v,a,label
+                xavg = obj['x'].mean()
+                yavg = obj['y'].mean()
+                if not(c==0):
+                    vavg = vtotal/c
+                    aavg = atotal/c
+                else:
+                    vavg = 0
+                    aavg = 0
+                fuseddata.append([idtotal, ttotal, xavg, yavg, vavg, aavg, totallabel])
         else:
-            #print("EMPTY")
-            fuseddata.append(1)
+            pass
 
         tframe = tframe + windowtimens
         framedata = []
+
+print(type(fuseddata[0]))
+print(fuseddata[0])
+fuseddf = pd.DataFrame(columns=['ID','t','x','y','v','a','label'], data=fuseddata)
+print(fuseddf)
+
+fuseddf.to_csv("fused.csv")
+
+
+from scipy.io import loadmat
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+# Load the MAT file
+data = loadmat('slamMapData.mat')
+map_matrix = data['mapMatrix']
+res = data['res'][0,0]            # since res is scalar, extract it
+xLim = data['xLim'][0]            # xLim is a 1x2 array
+yLim = data['yLim'][0]            # yLim is a 1x2 array
+
+# Compute coordinate arrays for plotting in world coordinates
+# The width and height of the map in cells
+height, width = map_matrix.shape
+
+# Generate coordinate arrays based on resolution and world limits
+x_coords = np.linspace(xLim[0], xLim[1], width)
+y_coords = np.linspace(yLim[0], yLim[1], height)
+valuex=(xLim[1]-xLim[0])/width
+print(valuex)
+print("xlim",xLim[0])
+valuey=(yLim[1]-yLim[0])/height
+print(valuey)
+print("Ylim:",yLim[0])
+for i in range(height):
+    for j in range(width):
+        if map_matrix[i,j]<0.7:
+            map_matrix[i,j]=0
+
+
+print(map_matrix)
+xccord=[]
+
+
+yccord=[]
+t=0
+
+#plt.imshow(map_matrix)
+for i in range(height):
+    for j in range(width):
+        if map_matrix[i,j]>0.7:
+            xccord.append(valuex*j+xLim[0])
+            yccord.append(valuey*i+yLim[0])
+            
+print("xvelues:",xccord)
+print("ycord:",yccord)
+
+#windowtime
+currenttime = 0
+folder = "pictures/"
+
+for index, row in fuseddf.iterrows():
+
+    if currenttime == 0:
+        currenttime = row['t']
+    
+    print("##############")
+    print(row['x'])
+    print(row['y'])
+    print(currenttime - row['t'])
+
+    if currenttime > row['t']:
+        plt.plot(row['x'], row['y'], marker="x", mec = 'r')
+        if type(row['label']) == str:
+            plt.annotate(str(row['ID']) + ": " + row['label'], (row['x'], row['y']))
+        if (row['v'] > 0):
+            plt.arrow(row['x'], row['y'], row['x'] + row['v']*math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
+        else:
+            plt.annotate(row['ID'], (row['x'], row['y']))
+    else:
+        plt.plot(xccord,yccord,linestyle="",marker=".", mec = 'k')
+        plt.savefig(folder + "figure" + str(index))
+        plt.clf()
+        currenttime += windowtimens
