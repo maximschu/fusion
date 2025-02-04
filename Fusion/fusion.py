@@ -473,7 +473,7 @@ for index, row in fuseddf.iterrows():
                 # Threshold in degrees
                 anglethr = 360
 
-                a = math.atan(row['x']/row['y'])
+                a = math.atan2(row['y'],row['x'])
                 b = irrow['theta']
                 
                 if (a - anglethr) <= b <= (a + anglethr):
@@ -559,16 +559,42 @@ for index, row in fuseddf.iterrows():
         currenttime = row['t']
 
     if currenttime > row['t']:
-        plt.plot(row['x'], row['y'], marker="x", mec = 'r')
+        danger = 0
+        if (math.sqrt(math.pow(row['x'], 2) + math.pow(row['y'], 2)) < 1.5):
+            danger += 1
+        if ((row['label'] == 'person') or (row['hot'])):
+            danger += 1
+            
+        athr = 45
+        a = math.atan2(row['y'], row['x'])
+        if (row['v'] > 0 and (a - athr <= row['a'] <= a + athr)):
+            danger += 1
+        
+        mec = 'k'
+        if danger == 0:
+            mec = 'g'
+        elif danger == 1:
+            mec = 'y'
+        elif danger == 2:
+            mec = '#FFA500' # Orange
+        elif danger == 3:
+            mec = 'r'
+
+        plt.plot(row['x'], row['y'], marker="x", mec = mec)
         if row['hot'] == 1:
-            plt.annotate(str(row['ID']) + ": " + row['label'] + " HOT", (row['x'], row['y']))
+            plt.annotate("ID" + str(row['ID']) + " " + row['label'] + " HOT", (row['x'], row['y']))
         else:
-            plt.annotate(str(row['ID']) + ": " + row['label'], (row['x'], row['y']))
+            plt.annotate("ID" + str(row['ID']) + " " + row['label'], (row['x'], row['y']))
         if (row['v'] > 0):
             plt.arrow(row['x'], row['y'], row['x'] + row['v']*math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
 
     else:
-        plt.plot(xccord,yccord,linestyle="",marker=".", mec = 'k')
+        plt.plot(xccord, yccord, linestyle = "", marker=",", mfc = "k", mec = "k")
+        ax = plt.gca()  
+        ax.set_facecolor("#F8F7F1") # Background Colour (Grey)
+        plt.title(f"Current Time (ns) : {currenttime}")
+        plt.xlabel("x (m)")
+        plt.ylabel("y (m)")
         plt.savefig(folder + "figure" + str(figureno))
         plt.clf()
         currenttime += windowtimens
@@ -589,3 +615,4 @@ image_files = sorted(image_files, key=lambda x: int(x.partition('figure')[2].par
 clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
 clip.write_videofile('_video.mp4')
 
+print("Complete")
