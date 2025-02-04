@@ -126,21 +126,20 @@ csvBuffer = []
 batchSize = 10
 
 
-############################################# MAIN CAMERA #############################################
+noDivisions = 3
+divisions = []
+
+divisions.append(0)
+for i in range(noDivisions-1):
+    divisions.append(int((1280/noDivisions)*(i+1)))
+divisions.append(1280)
 
 with open(csvFilePath, mode='w', newline='') as csvFile:
-    fieldNames = ['Time', 'centerX', 'centerY']
+    fieldNames = ['t', 'q1', 'q2', 'q3']
     writer = csv.DictWriter(csvFile, fieldnames=fieldNames)
     writer.writeheader()
 
     while True:
-        data, header = mi48.read()
-        
-        if data is None:
-            logger.critical('NONE data received instead of GFRA')
-            mi48.stop()
-            sys.exit(1)
-
         frames = pipeline.wait_for_frames()
         frames = align.process(frames)
 
@@ -154,58 +153,16 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
         color_image = np.asanyarray(color_frames.get_data())
 
         results = model.track(color_image, persist=True, verbose=False)
+    
 
-        if results and len(results[0].boxes):
-            for box in results[0].boxes:
-                x1,y1,x2,y2 = map(int, box.xyxy[0])
-                confidence_score = box.conf[0].item()
-                label = model.names[int(box.cls[0].item())]
-                if (label != "person"):
-                    break
+        data, header = mi48.read()
+        
+        if data is None:
+            logger.critical('NONE data received instead of GFRA')
+            mi48.stop()
+            sys.exit(1)
 
-                # None Error? Happens only occasionally on startup
-                try:
-                    track_id = int(box.id.item())
-                except:
-                    track_id = 999
-
-                x_point = ((x2-x1)//2)+x1
-                y_point = ((y2-y1)//2)+y1
-            
-                depth_obj = depth_frames.get_distance(x_point, y_point)
-                
-                # draw bounding box + labels
-                cv.circle(color_image, (x_point, y_point), radius=2, color=(0, 255, 0), thickness=-1)
-                cv.rectangle(color_image, (x1, y1), (x2,y2), color=(0,255,0), thickness=2)
-                # cv.putText(color_image, f'{label}, Score: {confidence_score:.2f}', (x1, y1-20), color= (255, 0,0), fontFace= cv.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
-                cv.putText(color_image, f'{depth_obj:.2f}m', (x_point, y_point), color= (0, 255,0), fontFace= cv.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
-
-                u, v = x_point, y_point
-                
-                # instrinsics (focal length of image (fx, fy) + principal point (cx, cy))
-                instinsics = depth_frames.profile.as_video_stream_profile().intrinsics
-                fx, fy = instinsics.fx, instinsics.fy
-                cx, cy = instinsics.ppx, instinsics.ppy
-                d = depth_frames.get_distance(u,v)
-
-                x = ((u-cx)/fx)*d
-                y = ((v-cy)/fy)*d
-                z = d
-                t = time.time_ns()
-
-                #print("Depth Intrinsics", instinsics)
-                print(f"3D Frame - Label={label}, x_point={x_point:.3f}, y_point={y_point:.3f}, X={x:.3f}, Y={y:.3f}, Z={d:.3f}")
-                if not (x == 0 and y == 0 and z == 0):
-                    new_row = pd.Series({'ID':track_id, 'label':label, 'x': x, 'y': y, 'z': z, 't': t})
-                    df = append_row(df, new_row)
-
-                if (t-t_start) >= (t_total*1000000000):
-                    df = df.sort_values(by=['ID', 't'])
-                    df.to_csv(csv_path, index=False, header=True)
-                    exit()
-                
-
-############################################# MAIN IR CAMERA #############################################  
+        ############################################# MAIN IR CAMERA #############################################  
         min_temp = dminav(data.min())  
         max_temp = dmaxav(data.max())  
         frame = data_to_frame(data, (80,62), hflip=True)
@@ -255,7 +212,7 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
 
 
             ###### ALIGNING IR AND CAMERA + DISTORTION CORRECTING ######
-            y_offset = 20 # (x = 9.4cm y = 3cm)
+            y_offset = 0 # (x = 9.4cm y = 3cm)
             x_offset = 100
 
             padded_width = color_image.shape[1] + x_offset
@@ -351,15 +308,31 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
                     cv.rectangle(ir_undistorted, (extLeft_undist[0], extTop_undist[1]), (extRight_undist[0],extBot_undist[1]), color=(255,0,0), thickness=2)
                     cv.circle(ir_undistorted, (centroidX_undist, centroidY_undist),radius=3, color=(255, 0, 0), thickness=-1)
 
+                    t = time.time_ns()
+                    
                     csvBuffer.append({
-                            'Time': t,
-                            'centerX': centerX,
-                            'centerY': centerY
+                            #'t': t,
+                            #'q1': ,
+                            #'q2': ,
+                            #'q3': 
                         })
                     
                 if len(csvBuffer) >= batchSize:
                     writer.writerows(csvBuffer)
                     csvBuffer.clear()
+
+                tmpD = []
+
+                for i in range(len(divisions)):
+                    tmpD.append(int(abs(divisions[i]-centerX)))
+ 
+
+                closestDiv = np.argmin(tmpD)
+
+                tmpD[closestDiv] = float('inf')
+
+                secondClosestDiv = np.argmin(tmpD)
+
 
                 #cv.circle(cvresize_bgr, extLeft, 8, (0, 0, 255), -1)
                 #cv.circle(cvresize_bgr, extRight, 8, (0, 255, 0), -1)
@@ -371,9 +344,82 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
                 ###### OUTPUT BW WITH CONTOURS, BOUNDING BOX, CENTERS ######
                 
                 cv.imshow("IR", ir_resized)
-                overlay = cv.addWeighted(ir_undistorted, 0.5, color_image, 0.5, 0)
+                
+
+############################################# MAIN CAMERA #############################################
+
+
+        if results and len(results[0].boxes):
+            for box in results[0].boxes:
+                x1,y1,x2,y2 = map(int, box.xyxy[0])
+                confidence_score = box.conf[0].item()
+                label = model.names[int(box.cls[0].item())]
+                hotTick = 0
+                #if (label != "person"):
+                #    break
+
+                # None Error? Happens only occasionally on startup
+                try:
+                    track_id = int(box.id.item())
+                except:
+                    track_id = 999
+
+                x_point = ((x2-x1)//2)+x1
+                y_point = ((y2-y1)//2)+y1
+            
+                depth_obj = depth_frames.get_distance(x_point, y_point)
+
+                boxColor = (0, 255, 0)
+
+                if closestDiv>secondClosestDiv:
+                    if (x_point)<divisions[closestDiv] and x_point>divisions[secondClosestDiv]:
+                        boxColor = (0, 255, 255)
+                        hotTick = 1
+                        print('fdfdsf')
+
+                elif closestDiv<secondClosestDiv:
+                    if (x_point)>divisions[closestDiv] and x_point<divisions[secondClosestDiv]:
+                        boxColor = (0, 255, 255)
+                        hotTick = 1
+                        print('xyxyx')
+
+
+                
+                # draw bounding box + labels
+                cv.circle(color_image, (x_point, y_point), radius=2, color=(0,255,0), thickness=-1)
+                cv.rectangle(color_image, (x1, y1), (x2,y2), color=boxColor, thickness=2)
+                # cv.putText(color_image, f'{label}, Score: {confidence_score:.2f}', (x1, y1-20), color= (255, 0,0), fontFace= cv.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
+                cv.putText(color_image, f'{depth_obj:.2f}m', (x_point, y_point), color= (0, 255,0), fontFace= cv.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
+
+                u, v = x_point, y_point
+                
+                # instrinsics (focal length of image (fx, fy) + principal point (cx, cy))
+                instinsics = depth_frames.profile.as_video_stream_profile().intrinsics
+                fx, fy = instinsics.fx, instinsics.fy
+                cx, cy = instinsics.ppx, instinsics.ppy
+                d = depth_frames.get_distance(u,v)
+
+                x = ((u-cx)/fx)*d
+                y = ((v-cy)/fy)*d
+                z = d
+                t = time.time_ns()
+
+                #print("Depth Intrinsics", instinsics)
+                print(f"3D Frame - Label={label}, x_point={x_point:.3f}, y_point={y_point:.3f}, X={x:.3f}, Y={y:.3f}, Z={d:.3f}")
+                if not (x == 0 and y == 0 and z == 0):
+                    new_row = pd.Series({'ID':track_id, 'label':label, 'x': x, 'y': y, 'z': z, 't': t, 'hot': hotTick})
+                    df = append_row(df, new_row)
+
+                if (t-t_start) >= (t_total*1000000000):
+                    df = df.sort_values(by=['ID', 't'])
+                    df.to_csv(csv_path, index=False, header=True)
+                    exit()
+                
+
 
         cv.imshow("CAMERA", color_image)
+
+        overlay = cv.addWeighted(ir_undistorted, 0.5, color_image, 0.5, 0)
 
         cv.imshow("Overlay", overlay)
         
@@ -382,4 +428,3 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
 
 pipeline.stop()
 cv.destroyAllWindows()
-
