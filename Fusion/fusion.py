@@ -1,4 +1,10 @@
-""" FUSION CODE """
+""" 
+FUSION CODE 
+
+Need to add some progress messages
+Need to add timing
+
+"""
 
 # Imports
 import os
@@ -644,6 +650,6 @@ image_files = sorted(image_files, key=lambda x: int(
 
 clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(
     image_files, fps=fps)
-clip.write_videofile('_video.mp4', logger=None)
+clip.write_videofile('_video.mp4', logger=None, bitrate='8000k')
 
 print("Complete")
