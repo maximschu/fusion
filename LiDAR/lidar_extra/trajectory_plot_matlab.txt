@@ -1,0 +1,30 @@
+numObjects = size(trackedHistory, 1);
+
+for i = 1:numObjects
+    % Extract data for this object
+    objectID   = trackedHistory{i, 1};
+    objPos     = trackedHistory{i, 2};  % Nx2 [x, y]
+    robotPoses = trackedHistory{i, 4};  % Nx3 [robotX, robotY, robotTheta]
+    
+    % Create a new figure for each object
+    figure('Name', ['Object ID: ' num2str(objectID)], 'NumberTitle', 'off');
+    
+    % 2a) Show the SLAM map
+    show(slamMap);  % Plots the occupancy grid
+    hold on;
+    
+    % 2b) Plot the object’s tracked positions
+    %     Use a red "x" marker for each tracked point
+    plot(objPos(:,1), objPos(:,2), 'rx-', 'LineWidth', 2, ...
+        'DisplayName', 'Object Trajectory');
+    
+    % 2c) Plot the robot’s positions (where we detected the object)
+    plot(robotPoses(:,1), robotPoses(:,2), 'bo-', 'LineWidth', 2, ...
+        'DisplayName', 'Robot Positions');
+    
+    % 2d) Add a title and legend
+    title(['Trajectory for Object ID: ' num2str(objectID)]);
+    legend('Location', 'best');
+    
+    hold off;
+end

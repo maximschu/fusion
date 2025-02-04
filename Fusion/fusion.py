@@ -1,21 +1,34 @@
-import pandas as pd
-import numpy as np
+""" FUSION CODE """
+
+# Imports
+import os
+import os.path
+from os import listdir
+from os.path import isfile, join
+
+import math
+import operator
 from collections import defaultdict
 from functools import reduce
-import operator
-import itertools
+
+import pandas as pd
+import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-import math
+from matplotlib.patches import Wedge
+from scipy.io import loadmat
 
-cameradf = pd.read_csv('camera.csv')
+import moviepy.video.io.ImageSequenceClip
 
-lidardf = pd.read_csv('LIDAR.csv')
+datafolder = "data/"
+if not os.path.exists(datafolder):
+    os.makedirs(datafolder)
 
-radardf = pd.read_csv('RADAR.csv')
-
-# UNCOMMENT
-irdf = pd.read_csv('IR.csv')
+# Load data from csv into Dataframe
+cameradf = pd.read_csv(datafolder + 'Camera.csv')
+lidardf = pd.read_csv(datafolder + 'LIDAR.csv')
+radardf = pd.read_csv(datafolder + 'RADAR.csv')
+irdf = pd.read_csv(datafolder + 'IR.csv')
 
 # CAMERA TRANSFORM
 xthetad = -90
@@ -34,34 +47,34 @@ cameraarray = cameradf[["x", "y", "z"]].to_numpy()
 
 
 transmat = np.array([
-    [1,0,0,x],
-    [0,1,0,y],
-    [0,0,1,z],
-    [0,0,0,1]
+    [1, 0, 0, x],
+    [0, 1, 0, y],
+    [0, 0, 1, z],
+    [0, 0, 0, 1]
 ])
 
 xrotmat = np.array([
-    [1,0,0,0],
-    [0,np.cos(xtheta),-1*np.sin(xtheta),0],
-    [0,np.sin(xtheta),np.cos(xtheta),0],
-    [0,0,0,1]
+    [1, 0, 0, 0],
+    [0, np.cos(xtheta), -1*np.sin(xtheta), 0],
+    [0, np.sin(xtheta), np.cos(xtheta), 0],
+    [0, 0, 0, 1]
 ])
 
 yrotmat = np.array([
-    [np.cos(ytheta),0,np.sin(ytheta),0],
-    [0,1,0,0],
-    [-np.sin(ytheta),0,np.cos(ytheta),0],
-    [0,0,0,1]
+    [np.cos(ytheta), 0, np.sin(ytheta), 0],
+    [0, 1, 0, 0],
+    [-np.sin(ytheta), 0, np.cos(ytheta), 0],
+    [0, 0, 0, 1]
 ])
 
 zrotmat = np.array([
-    [np.cos(ztheta),-1*np.sin(ztheta),0,0],
-    [np.sin(ztheta),np.cos(ztheta),0,0],
-    [0,0,1,0],
-    [0,0,0,1]
+    [np.cos(ztheta), -1*np.sin(ztheta), 0, 0],
+    [np.sin(ztheta), np.cos(ztheta), 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
 ])
 
-onescolumn = np.ones([len(cameradf),1])
+onescolumn = np.ones([len(cameradf), 1])
 cameraarray = np.transpose(np.concatenate((cameraarray, onescolumn), 1))
 
 xyrotmat = np.matmul(xrotmat, yrotmat)
@@ -80,7 +93,8 @@ cameradf['x'] = xcol
 cameradf['y'] = ycol
 cameradf['z'] = zcol
 
-csv_path = "newcameratransformed.csv"
+# Save transformed camera data
+csv_path = datafolder + "CameraT.csv"
 cameradf.to_csv(csv_path, index=False, header=True)
 
 # RADAR TRANSFORM
@@ -102,34 +116,34 @@ radararray = radardf[["x", "y", "z"]].to_numpy()
 
 
 transmat = np.array([
-    [1,0,0,x],
-    [0,1,0,y],
-    [0,0,1,z],
-    [0,0,0,1]
+    [1, 0, 0, x],
+    [0, 1, 0, y],
+    [0, 0, 1, z],
+    [0, 0, 0, 1]
 ])
 
 xrotmat = np.array([
-    [1,0,0,0],
-    [0,np.cos(xtheta),-1*np.sin(xtheta),0],
-    [0,np.sin(xtheta),np.cos(xtheta),0],
-    [0,0,0,1]
+    [1, 0, 0, 0],
+    [0, np.cos(xtheta), -1*np.sin(xtheta), 0],
+    [0, np.sin(xtheta), np.cos(xtheta), 0],
+    [0, 0, 0, 1]
 ])
 
 yrotmat = np.array([
-    [np.cos(ytheta),0,np.sin(ytheta),0],
-    [0,1,0,0],
-    [-np.sin(ytheta),0,np.cos(ytheta),0],
-    [0,0,0,1]
+    [np.cos(ytheta), 0, np.sin(ytheta), 0],
+    [0, 1, 0, 0],
+    [-np.sin(ytheta), 0, np.cos(ytheta), 0],
+    [0, 0, 0, 1]
 ])
 
 zrotmat = np.array([
-    [np.cos(ztheta),-1*np.sin(ztheta),0,0],
-    [np.sin(ztheta),np.cos(ztheta),0,0],
-    [0,0,1,0],
-    [0,0,0,1]
+    [np.cos(ztheta), -1*np.sin(ztheta), 0, 0],
+    [np.sin(ztheta), np.cos(ztheta), 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
 ])
 
-onescolumn = np.ones([len(radardf),1])
+onescolumn = np.ones([len(radardf), 1])
 radararray = np.transpose(np.concatenate((radararray, onescolumn), 1))
 
 xyrotmat = np.matmul(xrotmat, yrotmat)
@@ -155,15 +169,18 @@ dtheta = 0
 
 irdf['theta'] = irdf['theta'] + dtheta
 
+
 # Preprocess
-radardf['t'] = radardf['t'] * pow(10,9)
+radardf['t'] = radardf['t'] * pow(10, 9)
 radardf['ID'] = radardf['ID'] + int(500)
 lidardf['ObjectID'] = lidardf['ObjectID'] * -1
-lidardf["Timestamp"] = lidardf["Timestamp"]*pow(10,9)
+lidardf["Timestamp"] = lidardf["Timestamp"]*pow(10, 9)
 
-csv_path = "radartransformed.csv"
+# Save transformed radar data
+csv_path = datafolder + "RADART.csv"
 radardf.to_csv(csv_path, index=False, header=True)
 
+# Fuse by LIDAR IDs
 lidarset = list(set(lidardf["ObjectID"].to_list()))
 lidarset.sort()
 
@@ -176,13 +193,13 @@ for id in lidarset:
     iddf = lidardf.loc[lidardf['ObjectID'].eq(id)]
 
     tthresholds = 1
-    tthreshold = tthresholds * pow(10,9)
+    tthreshold = tthresholds * pow(10, 9)
 
     # LIDAR Camera Fusion
 
     for index, row in iddf.iterrows():
         t = row["Timestamp"]
-        
+
         camerat = cameradf["t"].to_list()
         lencamerat = len(camerat)
 
@@ -192,6 +209,7 @@ for id in lidarset:
         maxidx = len(camerat)
         minidx = 0
 
+        # Binary Search
         while (maxidx - minidx) > 1:
             mididx = int((maxidx+minidx)/2)
 
@@ -205,12 +223,11 @@ for id in lidarset:
 
             elif ((camerat[mididx] + tthreshold) > t):
                 maxidx = mididx
-            
 
-        
+        # Check around search result for useful neighbours
         if matchFound:
             threshold = 0.1
-            thresholdns = threshold * pow(10,9)
+            thresholdns = threshold * pow(10, 9)
 
             left = mididx
             right = left
@@ -219,17 +236,18 @@ for id in lidarset:
                 left -= 1
                 if left < 1:
                     break
-            
+
             while (camerat[right] - cameramatcht) < thresholdns:
                 right += 1
                 if right >= len(camerat) - 1:
                     break
-            
+
             matchdf = cameradf[left:right]
             matchdf = matchdf.sort_values(by=['ID'])
 
             matchlist = []
 
+            # Logic for matching IDs (positions within a circle)
             for unused, camerarow in matchdf.iterrows():
                 a = np.array((camerarow['x'], camerarow['y']))
                 b = np.array((row['PositionX'], row['PositionY']))
@@ -240,18 +258,18 @@ for id in lidarset:
 
                 if dist <= distthr:
                     matchlist.append(camerarow['ID'])
-            
+
             if matchlist:
                 fusiondict[id].append(matchlist)
-    
-    # LIDAR RADAR Fusion
+
+    # LIDAR RADAR Fusion, same logic
 
     tthresholds = 2
-    tthreshold = tthresholds * pow(10,9)
+    tthreshold = tthresholds * pow(10, 9)
 
     for index, row in iddf.iterrows():
         t = row["Timestamp"]
-        
+
         radart = radardf["t"].to_list()
         lenradart = len(radart)
 
@@ -274,12 +292,10 @@ for id in lidarset:
 
             elif ((radart[mididx] + tthreshold) > t):
                 maxidx = mididx
-            
 
-        
         if matchFound:
             threshold = 0.1
-            thresholdns = threshold * pow(10,9)
+            thresholdns = threshold * pow(10, 9)
 
             left = mididx
             right = left
@@ -288,12 +304,12 @@ for id in lidarset:
                 left -= 1
                 if left < 1:
                     break
-            
+
             while (radart[right] - radarmatcht) < thresholdns:
                 right += 1
                 if right >= len(radart) - 1:
                     break
-            
+
             matchdf = radardf[left:right]
             matchdf = matchdf.sort_values(by=['ID'])
 
@@ -310,19 +326,22 @@ for id in lidarset:
                 if dist <= distthr:
                     matchlist.append(int(radarrow['ID']))
 
-
             if matchlist:
                 fusiondict[id].append(matchlist)
 
 
+# Connect IDs in Graph
+# Camera Positive IDs (upto 500)
+# LIDAR Negative IDs
+# RADAR IDs from 500+
+
 objnodes = []
 objedges = []
 
-for k,v in fusiondict.items():
+for k, v in fusiondict.items():
     out = reduce(operator.concat, v)
     mode = max(set(out), key=out.count)
 
-    # lidar IDs made negative
     objpair = [k, mode]
 
     objnodes.extend(objpair)
@@ -338,10 +357,11 @@ G.add_edges_from(objedges)
 # list of sets
 setlist = list(nx.connected_components(G))
 
-#nx.draw(G)
-#plt.show()
+# nx.draw(G)
+# plt.show()
 
-lidardf = lidardf.rename(columns={"Timestamp": "t", "ObjectID": "ID",  "PositionX": "x", "PositionY": "y"})
+lidardf = lidardf.rename(
+    columns={"Timestamp": "t", "ObjectID": "ID",  "PositionX": "x", "PositionY": "y"})
 
 dflist = [lidardf, cameradf, radardf]
 concatdf = pd.concat(dflist)
@@ -352,7 +372,7 @@ starttime = concatdf['t'].iloc[0]
 endtime = concatdf['t'].iloc[-1]
 
 windowtime = 0.5
-windowtimens = windowtime * pow(10,9)
+windowtimens = windowtime * pow(10, 9)
 
 duration = endtime - starttime
 
@@ -363,6 +383,8 @@ tframe = starttime
 
 fuseddata = []
 framedata = []
+
+# Combine the matched data entries into the fused result
 
 for index, row in concatdf.iterrows():
     framedata.append(row)
@@ -395,91 +417,93 @@ for index, row in concatdf.iterrows():
                         c += 1
                         vtotal += row['Velocity']
                         atotal += row['Angle']
-                
+
                 # Populate t,x,y,v,a,label
                 xavg = obj['x'].mean()
                 yavg = obj['y'].mean()
-                if not(c==0):
+                if not (c == 0):
                     vavg = vtotal/c
                     aavg = atotal/c
                 else:
                     vavg = 0
                     aavg = 0
-                fuseddata.append([idtotal, ttotal, xavg, yavg, vavg, aavg, totallabel, 0])
+                fuseddata.append(
+                    [idtotal, ttotal, xavg, yavg, vavg, aavg, totallabel, 0])
         else:
             pass
 
         tframe = tframe + windowtimens
         framedata = []
 
-fuseddf = pd.DataFrame(columns=['ID','t','x','y','v','a','label','hot'], data=fuseddata)
+fuseddf = pd.DataFrame(
+    columns=['ID', 't', 'x', 'y', 'v', 'a', 'label', 'hot'], data=fuseddata)
 
 # IR FUSION
+# Add 'hot' tag to objects based on time and angle
 
 tthresholds = 1
-tthreshold = tthresholds * pow(10,9)
+tthreshold = tthresholds * pow(10, 9)
 
 for index, row in fuseddf.iterrows():
-        t = row["t"]
-        irt = irdf["t"].to_list()
+    t = row["t"]
+    irt = irdf["t"].to_list()
 
-        matchFound = False
-        irmatcht = 0
+    matchFound = False
+    irmatcht = 0
 
-        maxidx = len(irt)
-        minidx = 0
+    maxidx = len(irt)
+    minidx = 0
 
-        if len(irt) == 1:
+    if len(irt) == 1:
+        matchFound = True
+
+    while (maxidx - minidx) > 1:
+        mididx = int((maxidx+minidx)/2)
+
+        if (irt[mididx] - tthreshold) <= t <= (irt[mididx] + tthreshold):
             matchFound = True
+            irmatcht = irt[mididx]
+            break
 
-        while (maxidx - minidx) > 1:
-            mididx = int((maxidx+minidx)/2)
+        elif ((irt[mididx] - tthreshold) < t):
+            minidx = mididx
 
-            if (irt[mididx] - tthreshold) <= t <= (irt[mididx] + tthreshold):
-                matchFound = True
-                irmatcht = irt[mididx]
+        elif ((irt[mididx] + tthreshold) > t):
+            maxidx = mididx
+
+    if matchFound:
+        threshold = 0.1
+        thresholdns = threshold * pow(10, 9)
+
+        left = mididx
+        right = left
+
+        while (irmatcht - irt[left]) < thresholdns:
+            left -= 1
+            if left < 1:
                 break
 
-            elif ((irt[mididx] - tthreshold) < t):
-                minidx = mididx
+        while (irt[right] - irmatcht) < thresholdns:
+            right += 1
+            if right >= len(irt) - 1:
+                break
 
-            elif ((irt[mididx] + tthreshold) > t):
-                maxidx = mididx
-            
-        
-        if matchFound:
-            threshold = 0.1
-            thresholdns = threshold * pow(10,9)
+        matchdf = irdf[left:right]
+        # matchdf = matchdf.sort_values(by=['ID'])
 
-            left = mididx
-            right = left
+        matchlist = []
 
-            while (irmatcht - irt[left]) < thresholdns:
-                left -= 1
-                if left < 1:
-                    break
-            
-            while (irt[right] - irmatcht) < thresholdns:
-                right += 1
-                if right >= len(irt) - 1:
-                    break
-            
-            matchdf = irdf[left:right]
-            #matchdf = matchdf.sort_values(by=['ID'])
+        for unused, irrow in matchdf.iterrows():
+            # Threshold in degrees
+            anglethr = 360
 
-            matchlist = []
+            a = math.atan2(row['y'], row['x'])
+            b = irrow['theta']
 
-            for unused, irrow in matchdf.iterrows():
-                # Threshold in degrees
-                anglethr = 360
+            if (a - anglethr) <= b <= (a + anglethr):
+                fuseddf.loc[index, 'hot'] = 1
 
-                a = math.atan2(row['y'],row['x'])
-                b = irrow['theta']
-                
-                if (a - anglethr) <= b <= (a + anglethr):
-                    fuseddf.loc[index, 'hot'] = 1
-
-# Combine labels and heat readings
+# Add labels and heat readings onto IDs, for data points where they would be missing
 dataframes = [d for _, d in fuseddf.groupby('ID')]
 
 for dataframe in dataframes:
@@ -496,23 +520,20 @@ for dataframe in dataframes:
             if row['t'] < timehot:
                 timehot = row['t']
                 hot = 1
-    fuseddf.loc[((fuseddf['ID'] == dataframe['ID'].iloc[0]) & (fuseddf['t'] >= tlabel)), ['label']] = label
-    fuseddf.loc[((fuseddf['ID'] == dataframe['ID'].iloc[0]) & (fuseddf['t'] >= timehot)), ['hot']] = hot
+    fuseddf.loc[((fuseddf['ID'] == dataframe['ID'].iloc[0]) &
+                 (fuseddf['t'] >= tlabel)), ['label']] = label
+    fuseddf.loc[((fuseddf['ID'] == dataframe['ID'].iloc[0])
+                 & (fuseddf['t'] >= timehot)), ['hot']] = hot
 
-# Save fused data
-fuseddf.to_csv("fused.csv")
+# Save fused data to csv
+fuseddf.to_csv(datafolder + "Fused.csv")
 
-######### PLOTTING
-
-from scipy.io import loadmat
-import matplotlib.pyplot as plt
-import numpy as np
-
+# PLOTTING
 
 # Load the MAT file
-data = loadmat('slamMapData.mat')
+data = loadmat(datafolder + 'slamMapData.mat')
 map_matrix = data['mapMatrix']
-res = data['res'][0,0]            # since res is scalar, extract it
+res = data['res'][0, 0]            # since res is scalar, extract it
 xLim = data['xLim'][0]            # xLim is a 1x2 array
 yLim = data['yLim'][0]            # yLim is a 1x2 array
 
@@ -524,29 +545,28 @@ height, width = map_matrix.shape
 x_coords = np.linspace(xLim[0], xLim[1], width)
 y_coords = np.linspace(yLim[0], yLim[1], height)
 
-valuex=(xLim[1]-xLim[0])/width
-valuey=(yLim[1]-yLim[0])/height
+valuex = (xLim[1]-xLim[0])/width
+valuey = (yLim[1]-yLim[0])/height
 
 for i in range(height):
     for j in range(width):
-        if map_matrix[i,j]<0.7:
-            map_matrix[i,j]=0
+        if map_matrix[i, j] < 0.7:
+            map_matrix[i, j] = 0
 
-xccord=[]
-yccord=[]
-t=0
+xccord = []
+yccord = []
+t = 0
 
 for i in range(height):
     for j in range(width):
-        if map_matrix[i,j]>0.7:
+        if map_matrix[i, j] > 0.7:
             xccord.append(valuex*j+xLim[0])
             yccord.append(valuey*i+yLim[0])
-            
 
-# Plot and save figures
-import os
 
-folder = "pictures/"
+# Plot and save figures, with logic for Traffic Light System
+
+folder = "Figures/"
 if not os.path.exists(folder):
     os.makedirs(folder)
 
@@ -564,55 +584,66 @@ for index, row in fuseddf.iterrows():
             danger += 1
         if ((row['label'] == 'person') or (row['hot'])):
             danger += 1
-            
+
         athr = 45
         a = math.atan2(row['y'], row['x'])
         if (row['v'] > 0 and (a - athr <= row['a'] <= a + athr)):
             danger += 1
-        
+
         mec = 'k'
         if danger == 0:
             mec = 'g'
         elif danger == 1:
             mec = 'y'
         elif danger == 2:
-            mec = '#FFA500' # Orange
+            mec = '#FFA500'  # Orange
         elif danger == 3:
             mec = 'r'
 
-        plt.plot(row['x'], row['y'], marker="x", mec = mec)
+        plt.plot(row['x'], row['y'], marker="x", mec=mec)
         if row['hot'] == 1:
-            plt.annotate("ID" + str(row['ID']) + " " + row['label'] + " HOT", (row['x'], row['y']))
+            plt.annotate("ID" + str(row['ID']) + " " +
+                         row['label'] + " HOT", (row['x'], row['y']))
         else:
-            plt.annotate("ID" + str(row['ID']) + " " + row['label'], (row['x'], row['y']))
+            plt.annotate("ID" + str(row['ID']) + " " +
+                         row['label'], (row['x'], row['y']))
         if (row['v'] > 0):
-            plt.arrow(row['x'], row['y'], row['x'] + row['v']*math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
+            plt.arrow(row['x'], row['y'], row['x'] + row['v'] *
+                      math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
 
     else:
-        plt.plot(xccord, yccord, linestyle = "", marker=",", mfc = "k", mec = "k")
-        ax = plt.gca()  
-        ax.set_facecolor("#F8F7F1") # Background Colour (Grey)
+        plt.plot(xccord, yccord, linestyle="", marker=",", mfc="k", mec="k")
+
+        ax = plt.gca()
+
+        # Camera FOV
+        cfov = 69  # degrees
+        wedge = Wedge((0, 0), 4, 90-(cfov/2), 90 +
+                      (cfov/2), alpha=0.3, color='#0593D5')
+        ax.add_patch(wedge)
+
+        ax.set_facecolor("#F8F7F1")  # Background Colour (Grey)
         plt.title(f"Current Time (ns) : {currenttime}")
         plt.xlabel("x (m)")
         plt.ylabel("y (m)")
+        plt.axis('equal')
         plt.savefig(folder + "figure" + str(figureno))
         plt.clf()
         currenttime += windowtimens
         figureno += 1
 
-import moviepy.video.io.ImageSequenceClip
-import os.path
-from os import listdir
-from os.path import isfile, join
+# WIP Video Stream
 
 fps = 10
 
 image_files = [f for f in listdir(folder) if isfile(join(folder, f))]
-image_files = ['pictures/{0}'.format(element) for element in image_files]
+image_files = ['Figures/{0}'.format(element) for element in image_files]
 
-image_files = sorted(image_files, key=lambda x: int(x.partition('figure')[2].partition('.')[0]))
+image_files = sorted(image_files, key=lambda x: int(
+    x.partition('figure')[2].partition('.')[0]))
 
-clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
-clip.write_videofile('_video.mp4')
+clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(
+    image_files, fps=fps)
+clip.write_videofile('_video.mp4', logger=None)
 
 print("Complete")
