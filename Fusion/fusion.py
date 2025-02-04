@@ -1,6 +1,8 @@
 """ 
 FUSION CODE 
 
+TRANSFORM RADAR VELOCITY ANGLE
+
 Need to add some progress messages
 Need to add timing
 
@@ -179,6 +181,7 @@ irdf['theta'] = irdf['theta'] + dtheta
 # Preprocess
 radardf['t'] = radardf['t'] * pow(10, 9)
 radardf['ID'] = radardf['ID'] + int(500)
+
 lidardf['ObjectID'] = lidardf['ObjectID'] * -1
 lidardf["Timestamp"] = lidardf["Timestamp"]*pow(10, 9)
 
