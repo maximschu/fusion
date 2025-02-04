@@ -14,7 +14,10 @@ lidardf = pd.read_csv('LIDAR.csv')
 
 radardf = pd.read_csv('RADAR.csv')
 
-# CAMERA
+# UNCOMMENT
+irdf = pd.read_csv('IR.csv')
+
+# CAMERA TRANSFORM
 xthetad = -90
 ythetad = 0
 zthetad = 0
@@ -77,16 +80,10 @@ cameradf['x'] = xcol
 cameradf['y'] = ycol
 cameradf['z'] = zcol
 
-print("Camera:")
-print(cameradf)
-
-print("LIDAR:")
-print(lidardf)
-
 csv_path = "newcameratransformed.csv"
 cameradf.to_csv(csv_path, index=False, header=True)
 
-# RADAR
+# RADAR TRANSFORM
 xthetad = 180
 ythetad = 0
 zthetad = -90
@@ -151,25 +148,24 @@ radardf['x'] = xcol
 radardf['y'] = ycol
 radardf['z'] = zcol
 
+# IR TRANSFORM
+
+# Clockwise Angle Change
+dtheta = 0
+
+irdf['theta'] = irdf['theta'] + dtheta
+
 # Preprocess
 radardf['t'] = radardf['t'] * pow(10,9)
 radardf['ID'] = radardf['ID'] + int(500)
 lidardf['ObjectID'] = lidardf['ObjectID'] * -1
 lidardf["Timestamp"] = lidardf["Timestamp"]*pow(10,9)
 
-print("radar:")
-print(radardf)
-
-print("LIDAR:")
-print(lidardf)
-
 csv_path = "radartransformed.csv"
 radardf.to_csv(csv_path, index=False, header=True)
 
 lidarset = list(set(lidardf["ObjectID"].to_list()))
 lidarset.sort()
-
-print(lidarset)
 
 cameradf = cameradf.sort_values(by=['t'])
 lencameradf = len(cameradf)
@@ -182,16 +178,13 @@ for id in lidarset:
     tthresholds = 1
     tthreshold = tthresholds * pow(10,9)
 
+    # LIDAR Camera Fusion
+
     for index, row in iddf.iterrows():
         t = row["Timestamp"]
-        print("t:" +str(t))
         
         camerat = cameradf["t"].to_list()
         lencamerat = len(camerat)
-
-        #print("-----------------")
-        #print(f"Target t: {t:.0f}")
-        #print("-----------------")
 
         matchFound = False
         cameramatcht = 0
@@ -203,8 +196,6 @@ for id in lidarset:
             mididx = int((maxidx+minidx)/2)
 
             if (camerat[mididx] - tthreshold) <= t <= (camerat[mididx] + tthreshold):
-                #print("MATCH FOUND")
-                #print("DELTA T (s) == " + str(abs((t-camerat[mididx])/pow(10,9))))
                 matchFound = True
                 cameramatcht = camerat[mididx]
                 break
@@ -237,8 +228,6 @@ for id in lidarset:
             matchdf = cameradf[left:right]
             matchdf = matchdf.sort_values(by=['ID'])
 
-            #print(matchdf)
-
             matchlist = []
 
             for unused, camerarow in matchdf.iterrows():
@@ -251,15 +240,12 @@ for id in lidarset:
 
                 if dist <= distthr:
                     matchlist.append(camerarow['ID'])
-
-                #print(f"Id: {id}  ---  dist:{dist}")
             
             if matchlist:
                 fusiondict[id].append(matchlist)
     
-    # Perform same fusion for RADAR
+    # LIDAR RADAR Fusion
 
-    # 100ms (in s and ns)
     tthresholds = 2
     tthreshold = tthresholds * pow(10,9)
 
@@ -268,10 +254,6 @@ for id in lidarset:
         
         radart = radardf["t"].to_list()
         lenradart = len(radart)
-
-        #print("-----------------")
-        #print(f"Target t: {t:.0f}")
-        #print("-----------------")
 
         matchFound = False
         radarmatcht = 0
@@ -283,8 +265,6 @@ for id in lidarset:
             mididx = int((maxidx+minidx)/2)
 
             if (radart[mididx] - tthreshold) <= t <= (radart[mididx] + tthreshold):
-                #print("MATCH FOUND")
-                #print("DELTA T (s) == " + str(abs((t-radart[mididx])/pow(10,9))))
                 matchFound = True
                 radarmatcht = radart[mididx]
                 break
@@ -317,8 +297,6 @@ for id in lidarset:
             matchdf = radardf[left:right]
             matchdf = matchdf.sort_values(by=['ID'])
 
-            #print(matchdf)
-
             matchlist = []
 
             for unused, radarrow in matchdf.iterrows():
@@ -332,25 +310,17 @@ for id in lidarset:
                 if dist <= distthr:
                     matchlist.append(int(radarrow['ID']))
 
-                #print(f"Id: {id}  ---  dist:{dist}")
-            
+
             if matchlist:
                 fusiondict[id].append(matchlist)
 
-# Lidar: Camera
-print(fusiondict)
-
-#objdict = defaultdict(list)
 
 objnodes = []
 objedges = []
 
 for k,v in fusiondict.items():
-    print(f"Key:    {k}")
     out = reduce(operator.concat, v)
-    print(f"Values: {out}")
     mode = max(set(out), key=out.count)
-    print(f"Mode:   {mode}")
 
     # lidar IDs made negative
     objpair = [k, mode]
@@ -360,80 +330,54 @@ for k,v in fusiondict.items():
 
 objnodes = list(set(objnodes))
 
-print(f"objnodes: {objnodes}")
-print(f"objedges: {objedges}")
 
 G = nx.Graph()
 G.add_nodes_from(objnodes)
 G.add_edges_from(objedges)
 
-print("Connected:")
 # list of sets
 setlist = list(nx.connected_components(G))
-print(setlist)
 
 #nx.draw(G)
 #plt.show()
 
 lidardf = lidardf.rename(columns={"Timestamp": "t", "ObjectID": "ID",  "PositionX": "x", "PositionY": "y"})
-print(lidardf)
 
 dflist = [lidardf, cameradf, radardf]
 concatdf = pd.concat(dflist)
 concatdf = concatdf.sort_values(by=['t'])
 
-print(concatdf)
 
 starttime = concatdf['t'].iloc[0]
 endtime = concatdf['t'].iloc[-1]
-
-print(starttime)
-print(endtime)
 
 windowtime = 0.5
 windowtimens = windowtime * pow(10,9)
 
 duration = endtime - starttime
-print(duration)
 
 frames = int(duration//windowtimens)
-print(frames)
-print("-----")
 
 
 tframe = starttime
-
-print(setlist)
-print(type(setlist))
-print(type(setlist[0]))
 
 fuseddata = []
 framedata = []
 
 for index, row in concatdf.iterrows():
     framedata.append(row)
-    #print(index)
     if row['t'] > tframe + windowtimens:
-        #print("inside")
-        #print(len(framedata))
         temp = []
         for entry in framedata:
-            #print("ITERATE")
             for i in range(len(setlist)):
-                #print(int(entry['ID']))
-                #print(setlist)
                 if int(entry['ID']) in setlist[i]:
                     entry['ID'] = i
                     temp.append(entry)
-                    #print("found")
                     break
         if temp:
-            print("-------------")
-            #print("exists")
             tempdf = pd.DataFrame(temp)
-            print(tempdf)
             dflist = [d for _, d in tempdf.groupby(['ID'])]
-            print(dflist)
+
             xtotal = 0
             ytotal = 0
             vtotal = 0
@@ -442,10 +386,6 @@ for index, row in concatdf.iterrows():
             totallabel = ""
             flag = True
             for obj in dflist:
-                print("vvvvvvvvvvvv")
-                print(obj)
-                print(obj['t'])
-                print(type(obj['t']))
                 ttotal = obj['t'].iloc[0]
                 idtotal = obj['ID'].iloc[0]
                 for index, row in obj.iterrows():
@@ -465,20 +405,104 @@ for index, row in concatdf.iterrows():
                 else:
                     vavg = 0
                     aavg = 0
-                fuseddata.append([idtotal, ttotal, xavg, yavg, vavg, aavg, totallabel])
+                fuseddata.append([idtotal, ttotal, xavg, yavg, vavg, aavg, totallabel, 0])
         else:
             pass
 
         tframe = tframe + windowtimens
         framedata = []
 
-print(type(fuseddata[0]))
-print(fuseddata[0])
-fuseddf = pd.DataFrame(columns=['ID','t','x','y','v','a','label'], data=fuseddata)
-print(fuseddf)
+fuseddf = pd.DataFrame(columns=['ID','t','x','y','v','a','label','hot'], data=fuseddata)
 
+# IR FUSION
+
+tthresholds = 1
+tthreshold = tthresholds * pow(10,9)
+
+for index, row in fuseddf.iterrows():
+        t = row["t"]
+        irt = irdf["t"].to_list()
+
+        matchFound = False
+        irmatcht = 0
+
+        maxidx = len(irt)
+        minidx = 0
+
+        if len(irt) == 1:
+            matchFound = True
+
+        while (maxidx - minidx) > 1:
+            mididx = int((maxidx+minidx)/2)
+
+            if (irt[mididx] - tthreshold) <= t <= (irt[mididx] + tthreshold):
+                matchFound = True
+                irmatcht = irt[mididx]
+                break
+
+            elif ((irt[mididx] - tthreshold) < t):
+                minidx = mididx
+
+            elif ((irt[mididx] + tthreshold) > t):
+                maxidx = mididx
+            
+        
+        if matchFound:
+            threshold = 0.1
+            thresholdns = threshold * pow(10,9)
+
+            left = mididx
+            right = left
+
+            while (irmatcht - irt[left]) < thresholdns:
+                left -= 1
+                if left < 1:
+                    break
+            
+            while (irt[right] - irmatcht) < thresholdns:
+                right += 1
+                if right >= len(irt) - 1:
+                    break
+            
+            matchdf = irdf[left:right]
+            #matchdf = matchdf.sort_values(by=['ID'])
+
+            matchlist = []
+
+            for unused, irrow in matchdf.iterrows():
+                # Threshold in degrees
+                anglethr = 360
+
+                a = math.atan(row['x']/row['y'])
+                b = irrow['theta']
+                
+                if (a - anglethr) <= b <= (a + anglethr):
+                    fuseddf.loc[index, 'hot'] = 1
+
+# Combine labels and heat readings
+dataframes = [d for _, d in fuseddf.groupby('ID')]
+
+for dataframe in dataframes:
+    label = ''
+    hot = 0
+    tlabel = math.inf
+    timehot = math.inf
+    for unused, row in dataframe.iterrows():
+        if (row['label'] == 'person'):
+            if row['t'] < tlabel:
+                tlabel = row['t']
+                label = 'person'
+        if (row['hot'] == 1):
+            if row['t'] < timehot:
+                timehot = row['t']
+                hot = 1
+    fuseddf.loc[((fuseddf['ID'] == dataframe['ID'].iloc[0]) & (fuseddf['t'] >= tlabel)), ['label']] = label
+    fuseddf.loc[((fuseddf['ID'] == dataframe['ID'].iloc[0]) & (fuseddf['t'] >= timehot)), ['hot']] = hot
+
+# Save fused data
 fuseddf.to_csv("fused.csv")
 
+######### PLOTTING
 
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
@@ -499,59 +523,69 @@ height, width = map_matrix.shape
 # Generate coordinate arrays based on resolution and world limits
 x_coords = np.linspace(xLim[0], xLim[1], width)
 y_coords = np.linspace(yLim[0], yLim[1], height)
+
 valuex=(xLim[1]-xLim[0])/width
-print(valuex)
-print("xlim",xLim[0])
 valuey=(yLim[1]-yLim[0])/height
-print(valuey)
-print("Ylim:",yLim[0])
+
 for i in range(height):
     for j in range(width):
         if map_matrix[i,j]<0.7:
             map_matrix[i,j]=0
 
-
-print(map_matrix)
 xccord=[]
-
-
 yccord=[]
 t=0
 
-#plt.imshow(map_matrix)
 for i in range(height):
     for j in range(width):
         if map_matrix[i,j]>0.7:
             xccord.append(valuex*j+xLim[0])
             yccord.append(valuey*i+yLim[0])
             
-print("xvelues:",xccord)
-print("ycord:",yccord)
 
-#windowtime
-currenttime = 0
+# Plot and save figures
+import os
+
 folder = "pictures/"
+if not os.path.exists(folder):
+    os.makedirs(folder)
+
+currenttime = 0
+figureno = 0
 
 for index, row in fuseddf.iterrows():
 
     if currenttime == 0:
         currenttime = row['t']
-    
-    print("##############")
-    print(row['x'])
-    print(row['y'])
-    print(currenttime - row['t'])
 
     if currenttime > row['t']:
         plt.plot(row['x'], row['y'], marker="x", mec = 'r')
-        if type(row['label']) == str:
+        if row['hot'] == 1:
+            plt.annotate(str(row['ID']) + ": " + row['label'] + " HOT", (row['x'], row['y']))
+        else:
             plt.annotate(str(row['ID']) + ": " + row['label'], (row['x'], row['y']))
         if (row['v'] > 0):
             plt.arrow(row['x'], row['y'], row['x'] + row['v']*math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
-        else:
-            plt.annotate(row['ID'], (row['x'], row['y']))
+
     else:
         plt.plot(xccord,yccord,linestyle="",marker=".", mec = 'k')
-        plt.savefig(folder + "figure" + str(index))
+        plt.savefig(folder + "figure" + str(figureno))
         plt.clf()
         currenttime += windowtimens
+        figureno += 1
+
+import moviepy.video.io.ImageSequenceClip
+import os.path
+from os import listdir
+from os.path import isfile, join
+
+fps = 10
+
+image_files = [f for f in listdir(folder) if isfile(join(folder, f))]
+image_files = ['pictures/{0}'.format(element) for element in image_files]
+
+image_files = sorted(image_files, key=lambda x: int(x.partition('figure')[2].partition('.')[0]))
+
+clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
+clip.write_videofile('_video.mp4')
+
