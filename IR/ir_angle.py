@@ -93,7 +93,7 @@ fx = 903.9305419921875
 
 
 ###### WRTIE TO TXT FILE ######
-csvFilePath = 'ir_bounding.csv'
+csvFilePath = 'IR.csv'
 csvBuffer = []
 batchSize = 10
 
