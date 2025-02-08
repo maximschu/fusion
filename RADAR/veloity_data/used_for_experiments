@@ -1,11 +1,11 @@
 close all
 clear all
 
-startingtime=1.738067389216000e+09;% %%%your value here
+
 
 load(fullfile(pwd,'EXPORT.mat'),'detectionLog','timeLog');
 detectionLog = detectionLog';
-
+startingtime=starttime;
 display = HelperTIRadarTrackingDisplay('XLimits',[0 6],...
     'YLimits',[-3 3],...
     'MaxRange',25,...
