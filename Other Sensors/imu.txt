@@ -11,3 +11,11 @@ run following commands in matlab termninal, connect IMU to arduino
 
 
 change com port as needed
+
+
+useful docs
+
+
+https://uk.mathworks.com/help/nav/ug/introduction-on-choosing-inertial-sensor-fusion-filters.html
+https://uk.mathworks.com/help/nav/ref/imu.html#mw_40141d76-9bbb-4213-8f07-da087879f412
+https://uk.mathworks.com/help/nav/ref/imufilter-system-object.html#mw_8d99f490-b04c-46e5-b3ae-e34474c79714
