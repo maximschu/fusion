@@ -34,4 +34,4 @@ while isempty(timeLog) || timeLog(end) < stopTime
 end
 
 disp("done?")
-save(fullfile(pwd,'EXPORT.mat'), 'detectionLog', 'timeLog');
+save(fullfile(pwd,'EXPORT.mat'), 'detectionLog', 'timeLog','starttime');
