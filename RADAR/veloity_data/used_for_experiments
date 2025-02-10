@@ -3,7 +3,7 @@ clear all
 
 
 
-load(fullfile(pwd,'EXPORT.mat'),'detectionLog','timeLog');
+load(fullfile(pwd,'EXPORT.mat'),'detectionLog','timeLog', 'starttime');
 detectionLog = detectionLog';
 startingtime=starttime;
 display = HelperTIRadarTrackingDisplay('XLimits',[0 6],...
