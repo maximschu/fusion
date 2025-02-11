@@ -85,12 +85,16 @@ dmaxav = RollingAverageFilter(N=10)
 
 h = 720
 w = 1280
-cx,cy = w/2, h/2
+
+#cx,cy = w/2, h/2
 
 # intel camera
 #cx = 641.0424194335938
-fx = 903.9305419921875
+#fx = 903.9305419921875
 
+# 
+cx = 643
+fx = 810
 
 ###### WRTIE TO TXT FILE ######
 csvFilePath = 'IR.csv'
@@ -200,7 +204,8 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
                     centerX = ((extRight[0]-extLeft[0])//2)+extLeft[0]
                     centerY = ((extTop[1]-extBot[1])//2)+extBot[1]
 
-                    M = cv.moments(contour)
+                    M = cv.moments(filtered)
+
                     if M['m00'] != 0:
                         centroidX = int(M['m10'] / M['m00'])
                         centroidY = int(M['m01'] / M['m00'])
@@ -209,15 +214,18 @@ with open(csvFilePath, mode='w', newline='') as csvFile:
                         centroidY = centerY
 
                     cv.rectangle(cvresize_bgr, (extLeft[0], extTop[1]), (extRight[0],extBot[1]), color=(255,0,0), thickness=2)
-                    cv.circle(cvresize_bgr, (centerX, centerY),radius=3, color=(255, 0, 0), thickness=-1)
-                    d=1
+                    cv.circle(cvresize_bgr, (centroidX, centroidY),radius=3, color=(255, 0, 0), thickness=-1)
                     
+                    d=1
+            
                     opp=((centroidX-cx)/fx)*d
                     adj=d
                     theta = math.atan2(opp,adj)
-                    theta = ((theta/3.14159)*180)+15
+                    theta = ((theta/math.pi)*180)+15
 
-                    cv.putText(cvresize_bgr, f'{theta}', (centroidX, centroidY), color= (255, 0,0), fontFace= cv.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
+                    print(theta)
+
+                    cv.putText(cvresize_bgr, f'{theta:.2f}', (centroidX, centroidY), color= (255, 0,0), fontFace= cv.FONT_HERSHEY_SIMPLEX, fontScale= 1, thickness=2)
 
                     csvBuffer.append({
                             't': timestamp,
