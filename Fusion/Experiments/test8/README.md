@@ -1,0 +1,1 @@
+One person moving along only the vertical axis (forwards / backwards), with the target becoming temporarily stationary in the middle of recording

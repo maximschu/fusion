@@ -1,0 +1,1 @@
+Two people walking between waypoints, then meeting and continuing to walk together

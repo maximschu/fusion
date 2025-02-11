@@ -28,7 +28,7 @@ from scipy.io import loadmat
 
 import moviepy.video.io.ImageSequenceClip
 
-datafolder = "data/"
+datafolder = "Data/"
 if not os.path.exists(datafolder):
     os.makedirs(datafolder)
 
@@ -262,8 +262,8 @@ for id in lidarset:
                 b = np.array((row['PositionX'], row['PositionY']))
                 dist = np.linalg.norm(a - b)
 
-                # Threshold in m
-                distthr = 1
+                # Threshold in m (LIDAR)
+                distthr = 0.2
 
                 if dist <= distthr:
                     matchlist.append(camerarow['ID'])
@@ -271,9 +271,24 @@ for id in lidarset:
             if matchlist:
                 fusiondict[id].append(matchlist)
 
-    # LIDAR RADAR Fusion, same logic
+objnodes = []
+objedges = []
 
-    tthresholds = 2
+for k, v in fusiondict.items():
+    out = reduce(operator.concat, v)
+    mode = max(set(out), key=out.count)
+
+    objpair = [k, mode]
+
+    objnodes.extend(objpair)
+    objedges.append(objpair)
+
+
+# LIDAR RADAR Fusion, same logic
+
+for id in lidarset:
+
+    tthresholds = 0.1
     tthreshold = tthresholds * pow(10, 9)
 
     for index, row in iddf.iterrows():
@@ -329,8 +344,8 @@ for id in lidarset:
                 b = np.array((row['PositionX'], row['PositionY']))
                 dist = np.linalg.norm(a - b)
 
-                # Threshold in m
-                distthr = 2
+                # Threshold in m (RADAR)
+                distthr = 0.2
 
                 if dist <= distthr:
                     matchlist.append(int(radarrow['ID']))
@@ -338,14 +353,10 @@ for id in lidarset:
             if matchlist:
                 fusiondict[id].append(matchlist)
 
-
 # Connect IDs in Graph
 # Camera Positive IDs (upto 500)
 # LIDAR Negative IDs
 # RADAR IDs from 500+
-
-objnodes = []
-objedges = []
 
 for k, v in fusiondict.items():
     out = reduce(operator.concat, v)
@@ -366,6 +377,7 @@ G.add_edges_from(objedges)
 # list of sets
 setlist = list(nx.connected_components(G))
 
+# Plot ID Graph
 # nx.draw(G)
 # plt.show()
 
@@ -386,7 +398,6 @@ windowtimens = windowtime * pow(10, 9)
 duration = endtime - starttime
 
 frames = int(duration//windowtimens)
-
 
 tframe = starttime
 
@@ -504,7 +515,7 @@ for index, row in fuseddf.iterrows():
 
         for unused, irrow in matchdf.iterrows():
             # Threshold in degrees
-            anglethr = 360
+            anglethr = 20
 
             a = math.atan2(row['y'], row['x'])
             b = irrow['theta']
@@ -583,63 +594,81 @@ currenttime = 0
 figureno = 0
 
 for index, row in fuseddf.iterrows():
+    plotted = False
 
     if currenttime == 0:
         currenttime = row['t']
 
-    if currenttime > row['t']:
-        danger = 0
-        if (math.sqrt(math.pow(row['x'], 2) + math.pow(row['y'], 2)) < 1.5):
-            danger += 1
-        if ((row['label'] == 'person') or (row['hot'])):
-            danger += 1
+    while plotted is False:
+        if currenttime > row['t']:
+            danger = 0
+            if (math.sqrt(math.pow(row['x'], 2) + math.pow(row['y'], 2)) < 1.5):
+                danger += 1
+            if ((row['label'] == 'person') or (row['hot'])):
+                danger += 1
 
-        athr = 45
-        a = math.atan2(row['y'], row['x'])
-        if (row['v'] > 0 and (a - athr <= row['a'] <= a + athr)):
-            danger += 1
+            athr = 45
+            a = math.atan2(row['y'], row['x'])
+            if (row['v'] > 0 and (a - athr <= row['a'] <= a + athr)):
+                danger += 1
 
-        mec = 'k'
-        if danger == 0:
-            mec = 'g'
-        elif danger == 1:
-            mec = 'y'
-        elif danger == 2:
-            mec = '#FFA500'  # Orange
-        elif danger == 3:
-            mec = 'r'
+            mec = 'k'
+            if danger == 0:
+                mec = 'g'
+            elif danger == 1:
+                mec = 'y'
+            elif danger == 2:
+                mec = '#FFA500'  # Orange
+            elif danger == 3:
+                mec = 'r'
 
-        plt.plot(row['x'], row['y'], marker="x", mec=mec)
-        if row['hot'] == 1:
-            plt.annotate("ID" + str(row['ID']) + " " +
-                         row['label'] + " HOT", (row['x'], row['y']))
+            plt.plot(row['x'], row['y'], marker="x", mec=mec)
+            if row['hot'] == 1:
+                plt.annotate("ID" + str(row['ID']) + " " +
+                             row['label'] + " HOT", (row['x'], row['y']))
+            else:
+                plt.annotate("ID" + str(row['ID']) + " " +
+                             row['label'], (row['x'], row['y']))
+            if (row['v'] > 0):
+                plt.arrow(row['x'], row['y'], row['x'] + row['v'] *
+                          math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
+            plotted = True
+
         else:
-            plt.annotate("ID" + str(row['ID']) + " " +
-                         row['label'], (row['x'], row['y']))
-        if (row['v'] > 0):
-            plt.arrow(row['x'], row['y'], row['x'] + row['v'] *
-                      math.cos(row['a']), row['y'] + row['v']*math.sin(row['a']))
+            plt.plot(xccord, yccord, linestyle="",
+                     marker=",", mfc="k", mec="k")
 
-    else:
-        plt.plot(xccord, yccord, linestyle="", marker=",", mfc="k", mec="k")
+            ax = plt.gca()
 
-        ax = plt.gca()
+            # Camera FOV
+            cfov = 69  # degrees
+            wedge = Wedge((0, 0), 4, 90-(cfov/2), 90 +
+                          (cfov/2), alpha=0.3, color='#0593D5')
+            ax.add_patch(wedge)
 
-        # Camera FOV
-        cfov = 69  # degrees
-        wedge = Wedge((0, 0), 4, 90-(cfov/2), 90 +
-                      (cfov/2), alpha=0.3, color='#0593D5')
-        ax.add_patch(wedge)
+            # Markers for 11/02 Experiments
+            plt.plot(0, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(0, 1.2, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(-1.5, 1.2, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 1.2, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(-1.5, -0.3, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
 
-        ax.set_facecolor("#F8F7F1")  # Background Colour (Grey)
-        plt.title(f"Current Time (ns) : {currenttime}")
-        plt.xlabel("x (m)")
-        plt.ylabel("y (m)")
-        plt.axis('equal')
-        plt.savefig(folder + "figure" + str(figureno))
-        plt.clf()
-        currenttime += windowtimens
-        figureno += 1
+            ax.set_facecolor("#F8F7F1")  # Background Colour (Grey)
+            plt.title(f"Current Time (ns) : {currenttime}")
+            plt.xlabel("x (m)")
+            plt.ylabel("y (m)")
+            plt.axis('equal')
+            plt.savefig(folder + "figure" + str(figureno))
+            plt.clf()
+            currenttime += windowtimens
+            figureno += 1
 
 # WIP Video Stream
 

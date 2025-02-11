@@ -1,0 +1,1 @@
+Two people walking between waypoints, meeting in the middle, without crossing
