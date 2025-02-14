@@ -175,4 +175,4 @@ colNames = {'ID','t','x','y','Velocity','Angle'};
 T = array2table(newData, 'VariableNames', colNames);
 
 % Finally, write the table to CSV
-writetable(T, 'RADAR1.csv');
+writetable(T, 'RADAR.csv');
