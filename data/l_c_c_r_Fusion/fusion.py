@@ -175,7 +175,7 @@ radardf['z'] = zcol
 # Clockwise Angle Change
 dtheta = 0
 
-irdf['theta'] = irdf['theta']*-1 + dtheta
+irdf['theta'] = irdf['theta'] + dtheta
 
 
 # Preprocess
@@ -632,8 +632,10 @@ for index, row in fuseddf.iterrows():
                 plt.annotate("ID" + str(row['ID']) + " " +
                              row['label'], (row['x'], row['y']))
             if (row['v'] > 0):
-                plt.arrow(row['x'], row['y'], -(row['x'] + row['v'] *
-                          math.cos(row['a'])), -(row['y'] + row['v']*math.sin(row['a'])))
+                thresh=-180
+                plt.arrow(row['x'], row['y'],-row['v']*math.cos(math.radians(row['a']-thresh)),-row['v']*math.sin(math.radians(row['a']-thresh)))
+                #plt.arrow(row['x'], row['y'], (row['x'] + row['v'] *
+                 #         math.cos(math.radians(row['a']-thresh))), (row['y'] - row['v']*math.sin(math.radians(row['a']-thresh))))
             plotted = True
 
         else:
