@@ -256,7 +256,7 @@ def add_lidar_to_radar(radardf, lidardf):
 radardf = add_lidar_to_radar(radardf, lidardf)
 
 
-print(radardf)
+#print(radardf)
 
 
 lidardf = lidardf.drop(columns=['Timestamp1'])
@@ -291,7 +291,7 @@ fusiondict = defaultdict(list)
 for id in lidarset:
     iddf = lidardf.loc[lidardf['ObjectID'].eq(id)]
 
-    tthresholds = 1
+    tthresholds = 0.5
     tthreshold = tthresholds * pow(10, 9)
 
     # LIDAR Camera Fusion
@@ -325,7 +325,7 @@ for id in lidarset:
 
         # Check around search result for useful neighbours
         if matchFound:
-            threshold = 0.1
+            threshold = 1
             thresholdns = threshold * pow(10, 9)
 
             left = mididx
@@ -353,7 +353,7 @@ for id in lidarset:
                 dist = np.linalg.norm(a - b)
 
                 # Threshold in m (LIDAR)
-                distthr = 0.2
+                distthr = 0.3
 
                 if dist <= distthr:
                     matchlist.append(camerarow['ID'])
@@ -374,14 +374,15 @@ for k, v in fusiondict.items():
     objedges.append(objpair)
 
 print("HERE")
-print(radardf)
-print(lidardf)
-print(cameradf)
+
+#print(radardf)
+#print(lidardf)
+#print(cameradf)
 # camera? RADAR Fusion, same logic
 
 for id in cameraset:
     iddf = cameradf.loc[cameradf['ID'].eq(id)]
-    tthresholds = 1
+    tthresholds = 0.5
     tthreshold = tthresholds * pow(10, 9)
 
     for index, row in iddf.iterrows():
@@ -411,7 +412,7 @@ for id in cameraset:
                 maxidx = mididx
 
         if matchFound:
-            threshold = 100
+            threshold = 1
             thresholdns = threshold * pow(10, 9)
 
             left = mididx
@@ -438,7 +439,7 @@ for id in cameraset:
                 dist = np.linalg.norm(a - b)
                 #print(dist)
                 # Threshold in m (RADAR)
-                distthr = 0.2
+                distthr = 0.3
                 if dist <= distthr:
                     matchlist.append(int(radarrow['ID']))
 
@@ -475,12 +476,13 @@ print(setlist)
 
 lidardf = lidardf.rename(
     columns={"Timestamp": "t", "ObjectID": "ID",  "PositionX": "x", "PositionY": "y","X":"LOCATION_X","Y":"LOCATION_Y"})
-print(lidardf)
+#print(lidardf)
 dflist = [lidardf, cameradf, radardf]
 concatdf = pd.concat(dflist)
 concatdf = concatdf.sort_values(by=['t'])
-print("ALL")
-print(concatdf)
+#print("ALL")
+#
+# #print(concatdf)
 
 starttime = concatdf['t'].iloc[0]
 endtime = concatdf['t'].iloc[-1]
@@ -539,9 +541,9 @@ for index, row in concatdf.iterrows():
                 xavg = obj['x'].mean()
                 yavg = obj['y'].mean()
                 posx=obj['LOCATION_X'].mean()
-                print("x",posx)
+                #print("x",posx)
                 posy=obj['LOCATION_Y'].mean()
-                print("y",posy)
+                #print("y",posy)
                 if not (c == 0):
                     vavg = vtotal/c
                     aavg = atotal/c
@@ -550,7 +552,7 @@ for index, row in concatdf.iterrows():
                     aavg = 0
                 fuseddata.append(
                     [idtotal, ttotal, xavg, yavg, vavg, aavg, totallabel,posx,posy, 0])
-                print(fuseddata)
+                #print(fuseddata)
         else:
             pass
 
@@ -560,6 +562,9 @@ for index, row in concatdf.iterrows():
 fuseddf = pd.DataFrame(
     columns=['ID', 't', 'x', 'y', 'v', 'a', 'label','posx','posy', 'hot'], data=fuseddata)
 print("WEEEEEEEE",fuseddf)
+fuseddf['posx'] = fuseddf.groupby('ID')['posx'].fillna(method='ffill').fillna(method='bfill')
+fuseddf['posy'] = fuseddf.groupby('ID')['posy'].fillna(method='ffill').fillna(method='bfill')
+
 # IR FUSION
 # Add 'hot' tag to objects based on time and angle
 
@@ -691,9 +696,73 @@ for i in range(height):
 folder = "Figures/"
 if not os.path.exists(folder):
     os.makedirs(folder)
-
+print("made figures ")
 currenttime = 0
 figureno = 0
+
+
+buffer=0.8  
+x_min, x_max = min(xccord) - buffer, max(xccord) + buffer
+y_min, y_max = min(yccord) - buffer, max(yccord) + buffer
+
+
+def averagefuseddf(df, window_size=0.5e9, time_col='t'):
+    # Create a new DataFrame to store averaged results
+    averaged_data = []
+    
+    # Get the start and end times
+    start_time = df[time_col].min()
+    end_time = df[time_col].max()
+    
+    # Iterate over time windows
+    current_time = start_time
+    while current_time <= end_time:
+        # Select rows within the current time window
+        window_df = df[(df[time_col] >= current_time) & (df[time_col] < current_time + window_size)]
+        
+        if not window_df.empty:
+            # Group by ID and compute averages
+            grouped = window_df.groupby('ID')
+            for id_, group in grouped:
+                # Average key columns
+                avg_x = group['x'].mean()
+                avg_y = group['y'].mean()
+                avg_posx = group['posx'].mean()
+                avg_posy = group['posy'].mean()
+                avg_v = group['v'].mean() if not group['v'].isna().all() else 0  # Handle NaN
+                avg_a = group['a'].mean() if not group['a'].isna().all() else 0  # Handle NaN
+                # Mode for categorical data like label (most common value)
+                avg_label = group['label'].mode().iloc[0] if not group['label'].isna().all() else ''
+                # Sum for binary 'hot' (1 if any row has hot=1)
+                avg_hot = 1 if group['hot'].sum() > 0 else 0
+                
+                # Store the averaged row
+                averaged_data.append({
+                    'ID': id_,
+                    't': current_time + window_size / 2,  # Midpoint of the window
+                    'x': avg_x,
+                    'y': avg_y,
+                    'posx': avg_posx,
+                    'posy': avg_posy,
+                    'v': avg_v,
+                    'a': avg_a,
+                    'label': avg_label,
+                    'hot': avg_hot
+                })
+        
+        current_time += window_size
+    
+    
+    averaged_df = pd.DataFrame(averaged_data)
+    return averaged_df
+
+
+#averaged_fuseddf = averagefuseddf(fuseddf, window_size=windowtimens)
+#print("Averaged Fused DataFrame:")
+#print(averaged_fuseddf)#
+
+# Update fuseddf to use the averaged version for plotting
+#fuseddf = averaged_fuseddf
 
 for index, row in fuseddf.iterrows():
     plotted = False
@@ -725,7 +794,32 @@ for index, row in fuseddf.iterrows():
                 mec = 'r'
 
             plt.plot(row['x'], row['y'], marker="x", mec=mec)
-            plt.plot(row['posx'],row['posy'],marker="D")
+            plt.plot(row['posx'],row['posy'],marker="D",mec='#0000FF')
+            buffer = 0.8  # Adjust as needed for padding
+            ax = plt.gca()
+            
+
+           
+            
+
+              # Camera FOV
+            
+            
+
+           
+           
+
+
+            ax = plt.gca()
+            ax.set_clip_on(True)  #
+            
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+            plt.xlim([x_min,x_max])
+            plt.ylim([y_min,y_max])
+
+
+
             if row['hot'] == 1:
                 plt.annotate("ID" + str(row['ID']) + " " +
                              row['label'] + " HOT", (row['x'], row['y']))
@@ -740,27 +834,41 @@ for index, row in fuseddf.iterrows():
             plotted = True
 
         else:
+            ax = plt.gca()
+            cfov = 69  # degrees
+            wedge = Wedge((row['posx'], row['posy']), 4, 90-(cfov/2), 90 +
+                          (cfov/2), alpha=0.3, color='#0593D5')
+            wedge.set_clip_on(True)              
+            ax.add_patch(wedge)
+            
+            irfov = 40
+            irwedge = Wedge((row['posx'], row['posy']), 3, 90-(irfov/2), 90-(irfov/2)+irfov, alpha=0.2, color='y')
+            wedge.set_clip_on(True)
+            ax.add_patch(irwedge)
+
+            radarfov = 160
+            radarwedge = Wedge((row['posx'], row['posy']), 30, 90-(radarfov/2), 90-(radarfov/2)+radarfov, alpha=0.1, color='r')
+            wedge.set_clip_on(True)
+            ax.add_patch(radarwedge)
+            plt.legend([wedge, radarwedge, irwedge],['Camera FOV', 'Radar FOV', 'IR FOV'], loc='best' )
             plt.plot(xccord, yccord, linestyle="",
                      marker=",", mfc="k", mec="k")
 
             ax = plt.gca()
 
-            # Camera FOV
-            cfov = 69  # degrees
-            wedge = Wedge((0, 0), 4, 90-(cfov/2), 90 +
-                          (cfov/2), alpha=0.3, color='#0593D5')
-            ax.add_patch(wedge)
+           
             
-            irfov = 40
-            irwedge = Wedge((0, 0), 3, 90-(irfov/2), 90-(irfov/2)+irfov, alpha=0.2, color='y')
-            ax.add_patch(irwedge)
-
-            radarfov = 160
-            radarwedge = Wedge((0, 0), 4, 90-(radarfov/2), 90-(radarfov/2)+radarfov, alpha=0.1, color='r')
-            ax.add_patch(radarwedge)
-
-            plt.legend([wedge, radarwedge, irwedge],['Camera FOV', 'Radar FOV', 'IR FOV'], loc='best' )
-
+            # Markers for 25/02 exp
+            plt.plot(0, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 2.5, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(-1, 2.5, linestyle="",
+                   marker="*", mfc="r", mec="r")
+            
+                   
             # Markers for 11/02 Experiments
             plt.plot(0, 0, linestyle="",
                      marker="*", mfc="r", mec="r")
@@ -774,16 +882,23 @@ for index, row in fuseddf.iterrows():
                      marker="*", mfc="r", mec="r")
             plt.plot(1, 0, linestyle="",
                      marker="*", mfc="r", mec="r")
+            
+
 
             ax.set_facecolor("#F8F7F1")  # Background Colour (Grey)
             plt.title(f"Current Time (ns) : {currenttime}")
             plt.xlabel("x (m)")
             plt.ylabel("y (m)")
             plt.axis('equal')
+            plt.xlim([x_min,x_max])
+            plt.ylim([y_min,y_max])
+
             plt.savefig(folder + "figure" + str(figureno))
             plt.clf()
             currenttime += windowtimens
             figureno += 1
+
+
 
 # WIP Video Stream
 
@@ -801,3 +916,92 @@ clip.write_videofile('_video.mp4', logger=None, bitrate='8000k')
 
 print("Complete")
 
+print("metrics")
+
+
+
+
+
+
+def jerk(df, time_col='t', x_col='x', y_col='y'):
+    smoothness_scores = []
+    for _, group in df.groupby('ID'):
+        if len(group) > 3:  # min3 points
+            sorted_group = group.sort_values(time_col)
+            dt = sorted_group[time_col].diff().dropna() / 1e9  # convert to seconds
+            dx = sorted_group[x_col].diff().dropna()
+            dy = sorted_group[y_col].diff().dropna()
+            vel_x = dx / dt
+            vel_y = dy / dt
+            acc_x = vel_x.diff().dropna() / dt.iloc[1:].values
+            acc_y = vel_y.diff().dropna() / dt.iloc[1:].values
+            jerk_x = acc_x.diff().dropna() / dt.iloc[2:].values
+            jerk_y = acc_y.diff().dropna() / dt.iloc[2:].values
+            jerk_magnitude = np.sqrt(jerk_x**2 + jerk_y**2)#vector sum
+            smoothness_scores.append(np.mean(jerk_magnitude))
+    return np.mean(smoothness_scores) if smoothness_scores else np.nan##mean of all ID tracks
+
+# Compute smoothness
+lidar_smooth = jerk(lidardf)
+camera_smooth = jerk(cameradf)
+radar_smooth = jerk(radardf)
+fused_smooth = jerk(fuseddf)
+
+print(f"LIDAR Jerk: {lidar_smooth:.3f} m/s³, Camera: {camera_smooth:.3f} m/s³, "
+      f"Radar: {radar_smooth:.3f} m/s³, Fused: {fused_smooth:.3f} m/s³")   
+
+
+
+      
+
+
+####continuity????
+def tracking_continuity(df, time_window=0.5 * pow(10,9)):
+    grouped = df.groupby('ID')
+    durations = []
+    for _, group in grouped:
+        sorted_group = group.sort_values('t')
+        time_diffs = sorted_group['t'].diff().dropna()
+        gaps = time_diffs[time_diffs > time_window].count()
+        if gaps == 0:
+            duration = sorted_group['t'].max() - sorted_group['t'].min()
+        else:
+            duration = (sorted_group['t'].max() - sorted_group['t'].min()) / (gaps + 1)
+        durations.append(duration / 1e9)  
+    return np.max(durations) if durations else np.nan#####currently should this be max or min? Or the fused oness....
+
+
+# continuity
+lidar_cont = tracking_continuity(lidardf)
+camera_cont = tracking_continuity(cameradf)
+radar_cont = tracking_continuity(radardf)
+fused_cont = tracking_continuity(fuseddf)
+
+print(f"LIDAR Continuity: {lidar_cont:.2f} s, Camera: {camera_cont:.2f} s, "
+      f"Radar: {radar_cont:.2f} s, Fused: {fused_cont:.2f} s")
+
+
+'''# Markers for 25/02 exp
+            plt.plot(0, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 2.5, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(-1, 2.5, linestyle="",
+                   marker="*", mfc="r", mec="r")
+            
+                   
+            # Markers for 11/02 Experiments
+            plt.plot(0, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(0, 1.2, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(-1.5, 1.2, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 1.2, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(-1.5, -0.3, linestyle="",
+                     marker="*", mfc="r", mec="r")
+            plt.plot(1, 0, linestyle="",
+                     marker="*", mfc="r", mec="r")'''
