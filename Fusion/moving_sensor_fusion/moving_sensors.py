@@ -538,11 +538,12 @@ for index, row in concatdf.iterrows():
                         atotal += row['Angle']
 
                 # Populate t,x,y,v,a,label
-                xavg = obj['x'].mean()
-                yavg = obj['y'].mean()
                 posx=obj['LOCATION_X'].mean()
                 #print("x",posx)
                 posy=obj['LOCATION_Y'].mean()
+                xavg = obj['x'].mean()##########need to change for weights?
+                yavg = obj['y'].mean()
+                
                 #print("y",posy)
                 if not (c == 0):
                     vavg = vtotal/c
@@ -952,33 +953,92 @@ print(f"LIDAR Jerk: {lidar_smooth:.3f} m/s³, Camera: {camera_smooth:.3f} m/s³,
 
 
 
-      
 
 
-####continuity????
-def tracking_continuity(df, time_window=0.5 * pow(10,9)):
-    grouped = df.groupby('ID')
-    durations = []
-    for _, group in grouped:
-        sorted_group = group.sort_values('t')
-        time_diffs = sorted_group['t'].diff().dropna()
-        gaps = time_diffs[time_diffs > time_window].count()
-        if gaps == 0:
-            duration = sorted_group['t'].max() - sorted_group['t'].min()
-        else:
-            duration = (sorted_group['t'].max() - sorted_group['t'].min()) / (gaps + 1)
-        durations.append(duration / 1e9)  
-    return np.max(durations) if durations else np.nan#####currently should this be max or min? Or the fused oness....
+
+###########number of unique entries and Ids in time
 
 
-# continuity
-lidar_cont = tracking_continuity(lidardf)
-camera_cont = tracking_continuity(cameradf)
-radar_cont = tracking_continuity(radardf)
-fused_cont = tracking_continuity(fuseddf)
 
-print(f"LIDAR Continuity: {lidar_cont:.2f} s, Camera: {camera_cont:.2f} s, "
-      f"Radar: {radar_cont:.2f} s, Fused: {fused_cont:.2f} s")
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+def count_entries_and_ids_over_time(df, window_size=1e9, time_col='t'):
+
+    start_time = df[time_col].min()
+    end_time = df[time_col].max()
+    times = []
+    entry_counts = []
+    id_counts = []
+    
+    current_time = start_time
+    while current_time <= end_time:
+        window_df = df[(df[time_col] >= current_time) & (df[time_col] < current_time + window_size)]
+        times.append((current_time + window_size / 2) / 1e9)  # Midpoint of window in seconds
+        entry_counts.append(len(window_df))  # Number of rows (entries)
+        id_counts.append(len(window_df['ID'].unique()))  # Number of unique IDs
+        current_time += window_size
+    
+    return times, entry_counts, id_counts
+
+# Apply to each DataFrame
+sensor_dfs = {
+    'LIDAR': lidardf,
+    'Camera': cameradf,
+    'Radar': radardf,
+    'Fused': fuseddf
+}
+
+# Store results for plotting
+all_times = {}
+all_entries = {}
+all_ids = {}
+
+for sensor, df in sensor_dfs.items():
+    times, entries, ids = count_entries_and_ids_over_time(df)
+    all_times[sensor] = times
+    all_entries[sensor] = entries
+    all_ids[sensor] = ids
+
+# Colors for each sensor
+colors = ['blue', 'green', 'red', 'orange', 'purple']  # Added orange for IR
+
+# Plot 1: Number of Entries
+plt.figure(figsize=(12, 6))
+for sensor, color in zip(sensor_dfs.keys(), colors):
+    if all_times[sensor]:  # Only plot if there are times
+        entries = all_entries[sensor] + [0] * (max(len(all_entries[s]) for s in sensor_dfs.keys()) - len(all_entries[sensor]))
+        plt.plot(all_times[sensor], all_entries[sensor], label=f'{sensor} Entries', color=color, linestyle='-', marker='o')
+
+plt.title('Number of Entries Over Time Across Sensors')
+plt.xlabel('Time (s)')
+plt.ylabel('Number of Entries')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Plot 2: Number of Unique IDs
+plt.figure(figsize=(12, 6))
+for sensor, color in zip(sensor_dfs.keys(), colors):
+    if all_times[sensor]:  # Only plot if there are times
+        ids = all_ids[sensor] + [0] * (max(len(all_ids[s]) for s in sensor_dfs.keys()) - len(all_ids[sensor]))
+        plt.plot(all_times[sensor], all_ids[sensor], label=f'{sensor} IDs', color=color, linestyle='--', marker='s')
+
+plt.title('Number of Unique IDs Over Time Across Sensors')
+plt.xlabel('Time (s)')
+plt.ylabel('Number of Unique IDs')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Print results for verification
+for sensor in sensor_dfs.keys():
+    print(f"{sensor} - Entries: {all_entries[sensor]}")
+    print(f"{sensor} - IDs: {all_ids[sensor]}\n")
+
 
 
 '''# Markers for 25/02 exp
@@ -1005,3 +1065,95 @@ print(f"LIDAR Continuity: {lidar_cont:.2f} s, Camera: {camera_cont:.2f} s, "
                      marker="*", mfc="r", mec="r")
             plt.plot(1, 0, linestyle="",
                      marker="*", mfc="r", mec="r")'''
+
+
+
+
+
+
+
+######trying to look at just fused IDs
+
+print("fusedIDs")
+
+
+def count_entries_and_ids_over_time(df, window_size=1e9, time_col='t', id_col='ID', connected_ids=None):
+
+    if df.empty or time_col not in df.columns or id_col not in df.columns:
+        return [], [], []  
+    
+    # Filter by connected IDs if provided
+    if connected_ids is not None:
+        connected_ids_flat = set().union(*connected_ids)  
+        df = df[df[id_col].isin(connected_ids_flat)]
+    
+    start_time = df[time_col].min()
+    end_time = df[time_col].max()
+    if pd.isna(start_time) or pd.isna(end_time) or start_time >= end_time:
+        return [], [], []  # Return empty if timestamps are invalid
+    
+    times = []
+    entry_counts = []
+    id_counts = []
+    
+    current_time = start_time
+    while current_time <= end_time:
+        window_df = df[(df[time_col] >= current_time) & (df[time_col] < current_time + window_size)].drop_duplicates(subset=[time_col, id_col])
+        times.append((current_time + window_size / 2) / 1e9)  # Midpoint of window in seconds
+        entry_counts.append(len(window_df))  # Number of unique rows (entries)
+        id_counts.append(len(window_df[id_col].unique()))  # Number of unique IDs
+        current_time += window_size
+    
+    return times, entry_counts, id_counts
+
+
+
+all_times_connected = {}
+all_entries_connected = {}
+all_ids_connected = {}
+all_times_full = {}
+all_entries_full = {}
+all_ids_full = {}
+
+# Plot connected IDs
+for sensor, df in sensor_dfs.items():
+    
+    times_conn, entries_conn, ids_conn = count_entries_and_ids_over_time(df, connected_ids=setlist)
+    all_times_connected[sensor] = times_conn
+    all_entries_connected[sensor] = entries_conn
+    all_ids_connected[sensor] = ids_conn
+    
+    # Full data 
+    times_full, entries_full, ids_full = count_entries_and_ids_over_time(df)
+    all_times_full[sensor] = times_full
+    all_entries_full[sensor] = entries_full
+    all_ids_full[sensor] = ids_full
+
+# Colors for each sensor
+colors = ['blue', 'green', 'red', 'purple']  
+
+# Plot 1: Number of Entries (Connected vs Full)
+plt.figure(figsize=(12, 6))
+for sensor, color in zip(sensor_dfs.keys(), colors):
+    if all_times_connected[sensor]:  # Only plot if there are times for connected IDs
+        plt.plot(all_times_connected[sensor], all_entries_connected[sensor], 
+                 label=f'{sensor} Connected', color=color, linestyle='-', marker='o', alpha=0.7)
+    if all_times_full[sensor]:  # Only plot if there are times for full data
+        plt.plot(all_times_full[sensor], all_entries_full[sensor], 
+                 label=f'{sensor} Full', color=color, linestyle='--', marker='^')
+
+plt.title('Number of Entries Over Time: Connected IDs vs Full Data Across Sensors')
+plt.xlabel('Time (s)')
+plt.ylabel('Number of Entries')
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.grid(True)
+plt.tight_layout()
+
+plt.show()
+
+# Print results for verification
+for sensor in sensor_dfs.keys():
+    print(f"{sensor} - Connected Entries: {all_entries_connected[sensor]}")
+    print(f"{sensor} - Connected IDs: {all_ids_connected[sensor]}")
+    print(f"{sensor} - Full Entries: {all_entries_full[sensor]}")
+    print(f"{sensor} - Full IDs: {all_ids_full[sensor]}\n")
